@@ -9,6 +9,9 @@
 <meta name="theme-color" content="#0c1210">
 <meta name="description" content="500 Elite — partnership 500 against fair-information search bots that will make you a better player.">
 <title>500 Elite</title>
+<!-- Inline so the page stays a single self-contained file (and so browsers
+     stop probing for /favicon.ico). -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230c1210'/%3E%3Ctext x='16' y='23' font-size='19' font-family='Georgia,serif' fill='%23c9a557' text-anchor='middle'%3E500%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <style>
@@ -1081,6 +1084,44 @@ text-shadow: 0 0 34px var(--brass-glow);
 }
 .splash .small { color: var(--linen-dim); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 6px; }
 .splash .cta { margin-top: 22px; padding: 12px 38px; flex: none; }
+.name-pick { margin-top: 30px; }
+.np-label {
+font-family: var(--serif);
+font-size: 15px;
+color: var(--ivory-dim);
+margin-bottom: 12px;
+}
+.np-row { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; }
+.np-name {
+appearance: none;
+border: 1px solid var(--plate-edge);
+background: var(--plate);
+color: var(--linen);
+font-family: var(--serif);
+font-size: 15px;
+border-radius: 999px;
+padding: 8px 17px;
+min-height: 40px;
+cursor: pointer;
+transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.16s;
+}
+.np-name:hover { border-color: var(--brass-soft); }
+.np-name[aria-checked="true"] {
+background: var(--brass);
+border-color: var(--brass);
+color: #171410;
+font-weight: 700;
+}
+.np-name:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.np-name:active { transform: translateY(1px); }
+.np-note {
+margin-top: 11px;
+font-size: 11px;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+color: var(--linen-dim);
+min-height: 14px;
+}
 .splash .splash-resume {
 display: block;
 margin: 10px auto 0;
@@ -1091,6 +1132,11 @@ font-size: 13px;
 color: var(--linen);
 }
 @media (max-width: 359px), (max-height: 620px) {
+.name-pick { margin-top: 18px; }
+.np-label { font-size: 13.5px; margin-bottom: 9px; }
+.np-name { font-size: 13.5px; padding: 6px 13px; min-height: 34px; }
+.np-note { margin-top: 8px; font-size: 10px; }
+.splash .cta { margin-top: 16px; }
 .hand-grid { gap: 5px; }
 .hand-grid .card { max-width: 72px; }
 .hdr-pts { font-size: 17px; }
@@ -1270,6 +1316,11 @@ border-top: 1px solid rgba(201, 165, 87, 0.45);
           <div class="splash-inner">
             <div class="big">500</div>
             <div class="small">Elite table · partnership five hundred</div>
+            <div class="name-pick" id="namePick">
+              <div class="np-label" id="npLabel">Who are you?</div>
+              <div class="np-row" id="npRow" role="radiogroup" aria-labelledby="npLabel"></div>
+              <div class="np-note" id="npNote">The other three take the table</div>
+            </div>
             <button class="cta" id="btnDeal">Deal</button>
             <button class="ghost splash-resume" id="btnResume" hidden>Resume</button>
           </div>
@@ -3535,6 +3586,14 @@ standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, 
 elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 6, playWorlds: 220, bidWorlds: 120, topK: 128, discardWorlds: 48 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
+const NAME_POOL = ['Coley', 'David', 'Peli', 'BJ'];
+let playerName = Persist.get('playerName', null);
+if (!NAME_POOL.includes(playerName)) playerName = null;
+function setPlayerName(n) {
+if (!NAME_POOL.includes(n)) return;
+playerName = n;
+Persist.set('playerName', n);
+}
 const PARTNER_POOL = [
 { name: 'Mara Quinn', style: 'disciplined', risk: -0.1, pressure: 0.2, tempo: 1.0 },
 { name: 'Nora Vale', style: 'positional', risk: 0.02, pressure: 0.3, tempo: 1.12 },
@@ -3556,9 +3615,16 @@ const west = WEST_POOL[matchIndex % WEST_POOL.length];
 let east = EAST_POOL[matchIndex % EAST_POOL.length];
 if (east.name === partner.name) east = EAST_POOL[(matchIndex + 1) % EAST_POOL.length];
 bots = { 1: east, 2: partner, 3: west };
+const others = NAME_POOL.filter(n => n !== playerName);
+const seats = [2, 1, 3];
+const rot = matchIndex % others.length;
+seats.forEach((seat, i) => {
+bots[seat] = { ...bots[seat], name: others[(i + rot) % others.length] };
+});
 }
 function seatName(seat) { return seat === 0 ? 'You' : bots[seat].name.split(' ')[0]; }
 function seatFullName(seat) { return seat === 0 ? 'You' : bots[seat].name; }
+function seatLabel(seat) { return seat === 0 ? (playerName || 'You') : bots[seat].name; }
 const Sound = {
 ctx: null,
 ensure() {
@@ -3713,7 +3779,11 @@ const pw = whyPop.offsetWidth, ph = whyPop.offsetHeight;
 const pad = 10, gap = 10;
 const cx = r.left + r.width / 2;
 const left = Math.max(pad, Math.min(Math.round(cx - pw / 2), innerWidth - pw - pad));
-const above = r.top - ph - gap >= pad;
+const wants = anchor.dataset.whyPlace;
+const fitsAbove = r.top - ph - gap >= pad;
+const fitsBelow = r.bottom + ph + gap <= innerHeight - pad;
+const above = wants === 'below' ? (!fitsBelow && fitsAbove)
+: wants === 'above' ? true : fitsAbove;
 const top = above ? r.top - ph - gap : r.bottom + gap;
 whyPop.style.left = left + 'px';
 whyPop.style.top = Math.max(pad, Math.min(Math.round(top), innerHeight - ph - pad)) + 'px';
@@ -3959,8 +4029,14 @@ function humanTurn(kind) {
 return G.hand && !G.busy && G.humanResolver && G.humanResolver.kind === kind;
 }
 function renderNames() {
-$('namesUs').textContent = 'You & ' + seatName(2);
+$('pname0').textContent = seatLabel(0);
+if (!playerName) {
+$('namesUs').textContent = 'You & partner';
+$('namesThem').textContent = 'Opponents';
+} else {
+$('namesUs').textContent = seatLabel(0) + ' & ' + seatName(2);
 $('namesThem').textContent = seatName(3) + ' & ' + seatName(1);
+}
 $('pname1').textContent = bots[1].name;
 $('pname2').textContent = bots[2].name;
 $('pname3').textContent = bots[3].name;
@@ -4170,7 +4246,7 @@ fm.className = t < 4 ? 'felt-mark' : 'felt-mark nt';
 fm.textContent = t < 4 ? Core.SUIT_CHAR[t] : 'NT';
 }
 function seatInitial(seat) {
-return seat === 0 ? 'Y' : bots[seat].name.charAt(0);
+return seatLabel(seat).charAt(0);
 }
 function renderLastTrick() {
 const panel = $('lastTrick');
@@ -4454,6 +4530,11 @@ function specialLegal(strain) {
 if (!G.hand) return false;
 return Engine.legalBids(G.hand).some(b => b.strain === strain);
 }
+function resetComposer() {
+G.composer.level = 6;
+G.composer.strain = 0;
+G.composer.special = null;
+}
 function composerRefresh() {
 const hv = currentHighRank();
 if (!composerLegal(G.composer.level, G.composer.strain)) {
@@ -4507,6 +4588,7 @@ $('bidNote').innerHTML = ok
 : 'No legal bid selected';
 }
 async function startMatch(seed) {
+if (!playerName) setPlayerName(NAME_POOL[0]);
 G.matchIndex = Math.abs((+Persist.get('matchIndex', 0) | 0)) || 0;
 assignBots(G.matchIndex);
 renderNames();
@@ -4547,7 +4629,7 @@ $('discardBar').hidden = true;
 $('discardPreview').hidden = true;
 $('jokerCall').hidden = true;
 toggleAuctionPeek(false);
-G.composer.special = null;
+resetComposer();
 setPhaseClass('dealing');
 const firstBidder = Core.nextSeat(G.hand.dealer);
 status(`${G.hand.dealer === 0 ? 'You deal' : esc(seatName(G.hand.dealer)) + ' deals'} · ${firstBidder === 0 ? 'you bid first' : esc(seatFullName(firstBidder)) + ' bids first'}`);
@@ -5496,6 +5578,7 @@ if (!Array.isArray(lm.scores) || lm.scores.length !== 2 ||
 return lm;
 }
 async function resumeMatch(lm) {
+if (!playerName) setPlayerName(NAME_POOL[0]);
 G.matchIndex = Math.abs((+lm.matchIndex | 0)) || 0;
 assignBots(G.matchIndex);
 renderNames();
@@ -5518,11 +5601,50 @@ showSettings();
 composerInit();
 jokerCallInit();
 window.addEventListener('error', e => { console.error('500elite:', e.error || e.message); });
-window.__E500 = { Core, AI: AIm, Engine, G, settings, Bot, startMatch, openJokerCall, showWhy, setOff };
+window.__E500 = { Core, AI: AIm, Engine, G, settings, Bot, startMatch, openJokerCall, showWhy, setOff,
+NAME_POOL, setPlayerName, get playerName() { return playerName; }, get bots() { return bots; },
+composerRefresh, resetComposer };
+function refreshTable() {
+assignBots(Math.abs((+Persist.get('matchIndex', 0) | 0)) || 0);
+renderNames();
+}
+function namePickInit() {
+const row = $('npRow'), note = $('npNote'), deal = $('btnDeal');
+const paint = () => {
+for (const b of row.children) b.setAttribute('aria-checked', String(b.dataset.name === playerName));
+const others = NAME_POOL.filter(n => n !== playerName);
+note.textContent = playerName
+? `${others.join(', ')} take the table`
+: 'The other three take the table';
+deal.dataset.whyPlace = 'below';
+setOff(deal, !playerName, 'Pick your name first — the three you leave behind become the table.');
+};
+for (const n of NAME_POOL) {
+const b = document.createElement('button');
+b.type = 'button';
+b.className = 'np-name';
+b.dataset.name = n;
+b.textContent = n;
+b.setAttribute('role', 'radio');
+b.setAttribute('aria-checked', 'false');
+b.addEventListener('click', () => {
+Sound.ensure();
+setPlayerName(n);
+paint();
+refreshTable();
+say(`You are ${n}. ${NAME_POOL.filter(x => x !== n).join(', ')} take the table.`);
+});
+row.appendChild(b);
+}
+paint();
+refreshTable();
+}
 (async function boot() {
 setPhaseClass('idle');
 status('');
 injectManifest();
+if (settings.autopilot && !playerName) setPlayerName(NAME_POOL[0]);
+namePickInit();
 const btn = $('btnDeal');
 btn.addEventListener('click', () => {
 Sound.ensure();
