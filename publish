@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# publish — put a side project on the arcade site.
+#
+#   ./publish <slug> <source> ["Title"] ["Blurb"] [icon] [tag]
+#
+#   <source>  a single .html file  → copied to <slug>/index.html
+#             a directory          → copied to <slug>/ as-is (needs index.html)
+#
+# Examples
+#   ./publish 500 ~/Desktop/500_card_game/dist/500.html "500 Elite" "Partnership 500 vs an exact-solver bot" 🃏 "card game"
+#   ./publish clickrun ~/Desktop/clickrun/dist
+#
+# Re-running with the same slug replaces that project and bumps its date.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+SLUG="${1:-}"; SRC="${2:-}"
+if [[ -z "$SLUG" || -z "$SRC" ]]; then
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+fi
+[[ "$SLUG" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "slug must be lowercase letters, digits and dashes: $SLUG" >&2; exit 1; }
+
+SRC="${SRC/#\~/$HOME}"
+[[ -e "$SRC" ]] || { echo "no such source: $SRC" >&2; exit 1; }
+
+TITLE="${3:-$SLUG}"
+BLURB="${4:-}"
+ICON="${5:-✦}"
+TAG="${6:-}"
+
+# ---- copy the build in ------------------------------------------------------
+rm -rf "./$SLUG"
+mkdir -p "./$SLUG"
+if [[ -d "$SRC" ]]; then
+  cp -R "$SRC"/. "./$SLUG"/
+  [[ -f "./$SLUG/index.html" ]] || { echo "warning: $SLUG/ has no index.html — the page will 404" >&2; }
+else
+  cp "$SRC" "./$SLUG/index.html"
+fi
+
+# ---- upsert the manifest ----------------------------------------------------
+SLUG="$SLUG" TITLE="$TITLE" BLURB="$BLURB" ICON="$ICON" TAG="$TAG" \
+TODAY="$(date +%Y-%m-%d)" node --input-type=module -e '
+import fs from "node:fs";
+const p = "./projects.json";
+const list = JSON.parse(fs.readFileSync(p, "utf8"));
+const { SLUG, TITLE, BLURB, ICON, TAG, TODAY } = process.env;
+const prev = list.find(x => x.slug === SLUG) || {};
+const next = {
+  slug: SLUG,
+  title: TITLE && TITLE !== SLUG ? TITLE : (prev.title || SLUG),
+  blurb: BLURB || prev.blurb || "",
+  icon: ICON !== "✦" ? ICON : (prev.icon || "✦"),
+  tag: TAG || prev.tag || "",
+  updated: TODAY
+};
+const i = list.findIndex(x => x.slug === SLUG);
+if (i >= 0) list[i] = next; else list.push(next);
+fs.writeFileSync(p, JSON.stringify(list, null, 2) + "\n");
+'
+
+node ./build-index.mjs
+
+# ---- ship -------------------------------------------------------------------
+if [[ -d .git ]]; then
+  git add -A
+  if git diff --cached --quiet; then
+    echo "nothing changed — not pushing"
+    exit 0
+  fi
+  git commit -qm "publish: $SLUG"
+  if git remote get-url origin >/dev/null 2>&1; then
+    git push -q origin HEAD
+    OWNER_REPO="$(git remote get-url origin | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')"
+    OWNER="${OWNER_REPO%%/*}"; REPO="${OWNER_REPO##*/}"
+    echo
+    echo "live in ~30s → https://${OWNER}.github.io/${REPO}/${SLUG}/"
+    echo "site         → https://${OWNER}.github.io/${REPO}/"
+  else
+    echo "committed. add a remote to push: gh repo create arcade --public --source=. --push"
+  fi
+else
+  echo "committed nothing — not a git repo yet. See README.md for the one-time setup."
+fi
