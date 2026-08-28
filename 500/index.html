@@ -127,6 +127,17 @@ border-radius: 2px;
 transition: width 0.6s ease, background 0.4s;
 }
 .hdr-bar i.neg { background: var(--bad); }
+.hdr-practice {
+font-family: var(--serif);
+font-size: 13px;
+color: var(--ivory-dim);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+max-width: 100%;
+margin-top: 1px;
+}
+.practice .hdr-pts, .practice .hdr-bar { display: none; }
 .hdr-mid {
 display: flex;
 flex-direction: column;
@@ -519,6 +530,67 @@ letter-spacing: 0.08em;
 color: var(--linen-dim);
 margin-right: 2px;
 }
+.bid-values {
+position: absolute;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+z-index: 4;
+background: rgba(12, 18, 16, 0.9);
+border: 1px solid var(--plate-edge);
+border-radius: 12px;
+padding: 5px 7px 6px;
+display: flex;
+flex-direction: column;
+gap: 3px;
+align-items: center;
+max-width: calc(100% - 156px);
+}
+.bv-title {
+font-size: 8.5px;
+text-transform: uppercase;
+letter-spacing: 0.09em;
+color: var(--linen-dim);
+white-space: nowrap;
+}
+.bv-title .red { color: #e08b80; }
+.bid-values table { border-collapse: separate; border-spacing: 2px; font-variant-numeric: tabular-nums; }
+.bid-values th { font-size: 11px; font-weight: 600; color: var(--linen); padding: 0 0 1px; text-align: center; }
+.bid-values th .red { color: #e08b80; }
+.bid-values td { padding: 0; }
+.bv-l { font-family: var(--serif); font-size: 11px; color: var(--brass); padding-right: 3px !important; text-align: right; }
+.bv-cell {
+appearance: none;
+border: 1px solid transparent;
+background: rgba(255, 255, 255, 0.06);
+color: var(--ivory-dim);
+font: inherit;
+font-size: 10.5px;
+font-variant-numeric: tabular-nums;
+border-radius: 6px;
+min-width: 27px;
+min-height: 19px;
+padding: 1px 3px;
+cursor: pointer;
+line-height: 1.2;
+transition: background 0.16s, border-color 0.16s, color 0.16s;
+}
+.bv-cell.out { color: rgba(214, 205, 186, 0.28); background: transparent; cursor: default; }
+.bv-cell.high { background: rgba(224, 139, 128, 0.18); color: #e8a79c; border-color: rgba(224, 139, 128, 0.45); }
+.bv-cell.sel { border-color: var(--brass); color: var(--ivory); background: rgba(203, 165, 96, 0.18); box-shadow: 0 0 0 1px var(--brass) inset; }
+.bv-cell:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+.bv-special { display: flex; gap: 4px; }
+.bv-special .bv-cell { font-family: var(--serif); font-size: 10.5px; padding: 2px 8px; }
+.bv-special .bv-cell b { font-weight: 600; margin-left: 3px; color: inherit; }
+.bv-legend {
+font-size: 8.5px;
+color: var(--linen-dim);
+text-align: center;
+letter-spacing: 0.02em;
+max-width: 100%;
+}
+.phase-playing .bid-values, .phase-scoring .bid-values, .phase-finished .bid-values,
+.phase-idle .bid-values, .phase-discarding .bid-values, .phase-dealing .bid-values { display: none; }
 .need-line {
 text-align: center;
 font-size: 11px;
@@ -949,6 +1021,11 @@ padding: 8px 4px;
 .score-line .delta { font-size: 12px; font-variant-numeric: tabular-nums; }
 .score-line .delta.up { color: var(--good); }
 .score-line .delta.down { color: var(--bad); }
+.score-line .val.up { color: var(--good); }
+.score-line .val.down { color: var(--bad); }
+.need-line.explain { text-align: left; line-height: 1.5; color: var(--linen); margin: 4px 0 8px; }
+.need-line.explain b { color: var(--ivory); }
+.need-line.explain .red { color: #e08b80; }
 .review-item {
 background: rgba(255, 255, 255, 0.03);
 border: 1px solid var(--plate-edge);
@@ -1122,6 +1199,32 @@ text-transform: uppercase;
 color: var(--linen-dim);
 min-height: 14px;
 }
+.mode-pick { margin-top: 18px; }
+.mp-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.mp-mode {
+appearance: none;
+border: 1px solid var(--plate-edge);
+background: transparent;
+color: var(--linen-dim);
+font-family: var(--serif);
+font-size: 13px;
+border-radius: 999px;
+padding: 6px 15px;
+min-height: 34px;
+cursor: pointer;
+transition: background 0.16s, border-color 0.16s, color 0.16s;
+}
+.mp-mode:hover { border-color: var(--brass-soft); }
+.mp-mode[aria-checked="true"] { border-color: var(--brass); color: var(--ivory); background: rgba(203, 165, 96, 0.14); }
+.mp-mode:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.mp-note {
+margin-top: 8px;
+font-size: 10.5px;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+color: var(--linen-dim);
+min-height: 13px;
+}
 .splash .splash-resume {
 display: block;
 margin: 10px auto 0;
@@ -1165,13 +1268,25 @@ color: var(--linen);
 .bid-value-note { min-height: 12px; font-size: 10px; }
 .phase-bidding .felt .seat-s { display: none; }
 .phase-bidding .hand-grid .card { max-width: 64px; }
+.mode-pick { margin-top: 12px; }
+.mp-mode { font-size: 12px; padding: 5px 12px; min-height: 30px; }
+.mp-note { font-size: 9.5px; }
+.hdr-practice { font-size: 11.5px; }
+.bid-values { padding: 4px 5px 5px; gap: 2px; max-width: calc(100% - 128px); }
+.bv-title, .bv-legend { display: none; }
+.bv-cell { font-size: 9.5px; min-width: 24px; min-height: 17px; padding: 0 2px; }
+.bv-special .bv-cell { font-size: 9.5px; padding: 1px 6px; }
+.bid-values th, .bv-l { font-size: 10px; }
+}
+@media (max-height: 620px) {
+.bid-values { display: none; }
 }
 @media (max-height: 480px) {
 body { overflow-y: auto; height: auto; }
 .shell { height: auto; min-height: 100dvh; }
 .table { min-height: 170px; }
 .hand-grid .card { max-width: 60px; }
-.insight-strip, .discard-preview, .last-trick, .felt-mark, .exposed-strip { display: none; }
+.insight-strip, .discard-preview, .last-trick, .felt-mark, .exposed-strip, .bid-values { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
 .card, .plate, .bidchip { transition-duration: 0.01s; }
@@ -1240,6 +1355,7 @@ border-top: 1px solid rgba(201, 165, 87, 0.45);
         <span class="hdr-names" id="namesUs">You &amp; Mara</span>
         <span class="hdr-pts" id="scoreUs">0</span>
         <span class="hdr-bar" aria-hidden="true"><i id="barUs"></i></span>
+        <span class="hdr-practice" id="practUs" hidden></span>
       </div>
       <div class="hdr-mid">
         <div class="wordmark">500</div>
@@ -1249,6 +1365,7 @@ border-top: 1px solid rgba(201, 165, 87, 0.45);
         <span class="hdr-names" id="namesThem">Cal &amp; June</span>
         <span class="hdr-pts" id="scoreThem">0</span>
         <span class="hdr-bar" aria-hidden="true"><i id="barThem"></i></span>
+        <span class="hdr-practice" id="practThem" hidden></span>
       </div>
       <button class="icon-btn" id="btnMenu" aria-label="Menu and settings">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -1308,6 +1425,7 @@ border-top: 1px solid rgba(201, 165, 87, 0.45);
         </div>
         <div class="deck-anchor" id="deckAnchor"></div>
         <div class="exposed-strip" id="exposedStrip" hidden></div>
+        <div class="bid-values" id="bidValues" hidden></div>
         <div class="table-msg" id="tableMsg" role="status"></div>
         <div class="discard-preview" id="discardPreview" hidden></div>
         <div class="insight-strip" id="insightStrip"></div>
@@ -1320,6 +1438,10 @@ border-top: 1px solid rgba(201, 165, 87, 0.45);
               <div class="np-label" id="npLabel">Who are you?</div>
               <div class="np-row" id="npRow" role="radiogroup" aria-labelledby="npLabel"></div>
               <div class="np-note" id="npNote">The other three take the table</div>
+            </div>
+            <div class="mode-pick" id="modePick">
+              <div class="mp-row" id="mpRow" role="radiogroup" aria-label="Table mode"></div>
+              <div class="mp-note" id="mpNote"></div>
             </div>
             <button class="cta" id="btnDeal">Deal</button>
             <button class="ghost splash-resume" id="btnResume" hidden>Resume</button>
@@ -1843,6 +1965,15 @@ match.result = status;
 }
 return { event: 'scored', result, deltas, status };
 }
+function skipHand(match, hand) {
+if (hand.phase === 'complete') throw new Error('skipHand: hand already complete');
+if (hand.phase === 'bidding') throw new Error('skipHand: auction still open');
+hand.phase = 'complete';
+match.dealer = Core.nextSeat(match.dealer);
+match.handNo++;
+match.history.push({ skipped: true, contract: hand.contract || null });
+return { event: 'skipped' };
+}
 function copyPlay(p) {
 const e = { seat: p.seat, card: p.card };
 if (p.nom != null) e.nom = p.nom;
@@ -1919,7 +2050,7 @@ return true;
 return {
 newMatch, startHand, handSeed, decisionSeed,
 legalBids, applyBid, pickUpKitty, applyDiscard,
-legalPlaysFor, applyPlay, scoreHandIntoMatch,
+legalPlaysFor, applyPlay, scoreHandIntoMatch, skipHand,
 botPayload, checkIntegrity
 };
 }
@@ -2130,6 +2261,75 @@ return v;
 };
 return hand15.slice().sort((a, b) => val(b) - val(a)).slice(0, 10);
 }
+function voidKeep(hand15, strain) {
+const T = Core.buildTables(strain);
+const bySuit = [[], [], [], [], []];
+for (const c of hand15) bySuit[T.eff[c]].push(c);
+const side = [0, 1, 2, 3].filter(s => s !== strain && bySuit[s].length);
+const order = quickKeep(hand15, strain);
+const pri = new Map();
+for (const c of hand15) pri.set(c, 0);
+order.forEach((c, i) => pri.set(c, 1000 - i));
+const ordered = hand15.slice().sort((a, b) => pri.get(b) - pri.get(a));
+let best = null, bestS = -1e9;
+for (let mask = 0; mask < (1 << side.length); mask++) {
+const forced = [];
+for (let i = 0; i < side.length; i++) if (mask & (1 << i)) forced.push(...bySuit[side[i]]);
+if (forced.length > 5) continue;
+const fset = new Set(forced);
+const keep = ordered.filter(c => !fset.has(c)).slice(0, 10);
+if (keep.length < 10) continue;
+const sc = evalKeepHand(keep, strain);
+if (sc > bestS) { bestS = sc; best = keep; }
+}
+return best || order;
+}
+function voidPatterns(hand15, strain) {
+const T = Core.buildTables(strain);
+const bySuit = [[], [], [], [], []];
+for (const c of hand15) bySuit[T.eff[c]].push(c);
+const side = [0, 1, 2, 3].filter(s => s !== strain && bySuit[s].length);
+const order = quickKeep(hand15, strain);
+const pri = new Map();
+for (const c of hand15) pri.set(c, 0);
+order.forEach((c, i) => pri.set(c, 1000 - i));
+const ordered = hand15.slice().sort((a, b) => pri.get(b) - pri.get(a));
+const out = [];
+for (let mask = 0; mask < (1 << side.length); mask++) {
+const forced = [];
+for (let i = 0; i < side.length; i++) if (mask & (1 << i)) forced.push(...bySuit[side[i]]);
+if (forced.length > 5) continue;
+const fset = new Set(forced);
+const keep = ordered.filter(c => !fset.has(c)).slice(0, 10);
+if (keep.length === 10) out.push(keep);
+}
+return out.length ? out : [order];
+}
+const SCREEN_R = 2;
+function screenedKeep(hand15, strain, w, declSeat, rngSeed, screenR) {
+const R = screenR || SCREEN_R;
+const key = declSeat * 8 + strain;
+if (!w._keep) w._keep = {};
+const hit = w._keep[key];
+if (hit) return hit;
+const pats = voidPatterns(hand15, strain);
+let best = pats[0], bestV = -Infinity;
+if (pats.length > 1) {
+const T = Core.buildTables(strain);
+for (const keep of pats) {
+let tot = 0;
+for (let r = 0; r < R; r++) {
+const hands = w.hands.map((h, s) => s === declSeat ? keep.slice() : (h ? h.slice() : []));
+const sim = makeSim(T, strain, hands, declSeat, declSeat & 1, [0, 0], []);
+playOut(sim, Core.rngFromSeed(rngSeed + r * 7919), 0.4);
+tot += sim.tricksSide[declSeat & 1];
+}
+if (tot > bestV) { bestV = tot; best = keep; }
+}
+}
+w._keep[key] = best;
+return best;
+}
 function auctionEvidence(auction) {
 const ev = [[], [], [], []];
 let high = 0;
@@ -2145,7 +2345,59 @@ return ev;
 }
 const KITTY_BOOST = 1.15;
 const PARTNER_BOOST = 2.1;
-function handAuctionLikelihood(hand, seatEvidence) {
+function bidPotentialFromEstimate(est, strain) {
+return clamp(strain === Core.NOTRUMP ? 4.54 + 0.56 * est : 5.12 + 0.50 * est, 0, 10);
+}
+function bidPotential(hand, strain) {
+return bidPotentialFeatures(hand, strain);
+}
+const BID_SUIT_MEAN = [2.21011, 2.8855, 0.659083, 0.223458, 0.893833, 0.820208];
+const BID_SUIT_SCALE = [1.162012, 1.276345, 0.696558, 0.416563, 0.812339, 0.764722];
+const BID_SUIT_BETA = [6.083667, 0.391228, 0.458364, 0.088072, -0.010789, 0.148082, 0.063085];
+const BID_NT_MEAN = [2.05035, 0.223833, 0.893833, 0.817333, 0.478833];
+const BID_NT_SCALE = [1.008364, 0.416812, 0.812339, 0.764177, 0.543647];
+const BID_NT_BETA = [5.646333, 0.389275, 0.303873, 0.271365, 0.136959, 0.032206];
+function bidFeatureVector(hand, strain) {
+const T = Core.buildTables(strain);
+const by = [[], [], [], [], []];
+for (const c of hand) by[T.eff[c]].push(c);
+let aces = 0, guardedK = 0, longTop = 0;
+for (let s = 0; s < 4; s++) {
+const g = by[s], n = g.length;
+if (!n) continue;
+let ace = false, king = false, top = 0;
+for (const c of g) {
+const r = Core.rankOf(c);
+if (r === 14) ace = true;
+if (r === 13) king = true;
+if (r > top) top = r;
+}
+if (ace) aces++;
+if (king && n >= 2) guardedK++;
+if (n >= 4 && top >= 13) longTop++;
+}
+const est = estimateTricks(hand, strain);
+if (strain === Core.NOTRUMP) {
+return [est, hand.includes(JOKER) ? 1 : 0, aces, guardedK, longTop];
+}
+const tr = by[strain];
+let bowers = 0, trumpAce = 0;
+for (const c of tr) {
+if (T.pow[c] >= 128) bowers++;
+if (T.pow[c] === 14) trumpAce = 1;
+}
+return [est, tr.length, bowers, trumpAce, aces, guardedK];
+}
+function bidPotentialFeatures(hand, strain) {
+const x = bidFeatureVector(hand, strain);
+const mean = strain === Core.NOTRUMP ? BID_NT_MEAN : BID_SUIT_MEAN;
+const scale = strain === Core.NOTRUMP ? BID_NT_SCALE : BID_SUIT_SCALE;
+const beta = strain === Core.NOTRUMP ? BID_NT_BETA : BID_SUIT_BETA;
+let y = beta[0];
+for (let i = 0; i < x.length; i++) y += beta[i + 1] * (x[i] - mean[i]) / scale[i];
+return clamp(y, 0, 10);
+}
+function handAuctionLikelihoodModel(hand, seatEvidence, scale, passOffset) {
 if (!seatEvidence || !seatEvidence.length) return 1;
 const est = [];
 for (let s = 0; s <= 4; s++) est.push(estimateTricks(hand, s));
@@ -2158,7 +2410,7 @@ w *= 0.08 + 0.92 * sigmoid((gate - misereDanger(hand)) / 0.8);
 continue;
 }
 const need = e.level - PARTNER_BOOST - KITTY_BOOST;
-w *= 0.08 + 0.92 * sigmoid((est[e.strain] - need) / 0.9);
+w *= 0.08 + 0.92 * sigmoid((est[e.strain] - need) / scale);
 } else {
 let bestMargin = -99;
 for (let s = 0; s <= 4; s++) {
@@ -2167,10 +2419,68 @@ if (!bids.length) continue;
 const minLevel = bids[0].level;
 bestMargin = Math.max(bestMargin, est[s] - (minLevel - PARTNER_BOOST - KITTY_BOOST));
 }
-if (bestMargin > -90) w *= 0.10 + 0.90 * (1 - sigmoid((bestMargin - 0.8) / 0.9));
+if (bestMargin > -90) {
+w *= 0.10 + 0.90 * (1 - sigmoid((bestMargin - passOffset) / scale));
+}
 }
 }
 return clamp(w, 0.03, 30);
+}
+function handAuctionLikelihood(hand, seatEvidence) {
+return handAuctionLikelihoodModel(hand, seatEvidence, 0.9, 0.8);
+}
+function discardEvidenceLikelihood(keep, buried, strain) {
+if (!keep || keep.length !== 10 || !buried || buried.length !== 5) return 1;
+const hand15 = keep.concat(buried);
+const isMis = strain >= Core.MISERE;
+const ideal = isMis ? quickKeepMisere(hand15) : voidKeep(hand15, strain);
+const score = isMis ? evalKeepHandMisere : (h => evalKeepHand(h, strain));
+const regret = Math.max(0, score(ideal) - score(keep));
+const kept = new Set(keep);
+let substitutions = 0;
+for (const c of ideal) if (!kept.has(c)) substitutions++;
+const temperature = isMis ? 5.0 : 6.5;
+return 0.10 + 0.90 * Math.exp(-substitutions * 0.85 - regret / temperature);
+}
+function quickAuctionBid(hand, seat, highB, estOverride, legacy) {
+const highRank = highB ? Core.bidRank(highB) : 0;
+const est = estOverride || [0, 1, 2, 3, 4].map(s => estimateTricks(hand, s));
+if (legacy) {
+const legal = Core.legalBidsAbove(highRank);
+let best = null;
+for (let s = 0; s <= 4; s++) {
+const b = legal.find(x => x.strain === s);
+if (b && est[s] + KITTY_BOOST + PARTNER_BOOST >= b.level + 0.3 &&
+(!best || b.rank < best.rank)) best = b;
+}
+return best;
+}
+const partnerHolds = !!(highB && (highB.seat & 1) === (seat & 1));
+const legal = Core.legalBidsAbove(highRank, {
+withMisere: true,
+misereOk: !!(highB && highB.strain < Core.MISERE && highB.level === 7)
+});
+let best = null, bestQ = -Infinity;
+for (let s = 0; s <= 4; s++) {
+const b = legal.find(x => x.strain === s);
+if (!b) continue;
+if (partnerHolds && highB.strain === s) continue;
+const selfMargin = est[s] + KITTY_BOOST + PARTNER_BOOST - b.level;
+if (selfMargin < (partnerHolds ? 1.0 : 0.25)) continue;
+const q = (bidPotentialFromEstimate(est[s], s) - b.level) + b.value / 900;
+if (q > bestQ || (q === bestQ && (!best || b.rank < best.rank))) {
+bestQ = q; best = b;
+}
+}
+const danger = misereDanger(hand);
+for (const b of legal) {
+if (b.strain < Core.MISERE) continue;
+const gate = b.strain === Core.OPEN_MISERE ? 1.45 : 2.45;
+if (danger > gate - (partnerHolds ? 0.45 : 0)) continue;
+const q = (gate - danger) * 0.9 + (b.strain === Core.OPEN_MISERE ? 0.75 : 0.45);
+if (q > bestQ) { bestQ = q; best = b; }
+}
+return best;
 }
 function buildBeliefContext(payload) {
 const trump = payload.trump == null ? 4 : payload.trump;
@@ -2216,45 +2526,192 @@ folded, exposedSeat,
 exposedHand: exposedSeat >= 0 ? payload.exposedHand.slice() : null
 };
 }
-function sampleWorld(ctx, rng) {
-const { unseen, slots, T } = ctx;
-for (let attempt = 0; attempt < 60; attempt++) {
-const remaining = slots.map(s => s.count);
-const assigned = slots.map(() => []);
-const order = unseen.slice();
-rng.shuffle(order);
-order.sort((a, b) => {
-const ca = constraintCount(a), cb = constraintCount(b);
-return cb - ca;
+const DEAL_FACT = [1];
+for (let i = 1; i <= 45; i++) DEAL_FACT[i] = DEAL_FACT[i - 1] * i;
+const DEAL_PLAN_CACHE = new Map();
+function dealPlan(groupSizes, capacities, voidMasks) {
+const key = groupSizes.join('.') + '|' + capacities.join('.') + '|' + voidMasks.join('.');
+const cached = DEAL_PLAN_CACHE.get(key);
+if (cached) return cached;
+const suits = [0, 1, 2, 3, 4].filter(s => groupSizes[s] > 0).sort((a, b) => {
+let ca = 0, cb = 0;
+for (const mask of voidMasks) {
+if (mask & (1 << a)) ca++;
+if (mask & (1 << b)) cb++;
+}
+return cb - ca || groupSizes[b] - groupSizes[a];
 });
-function constraintCount(c) {
-const e = T.eff[c];
-let n = 0;
-for (const s of slots) if (s.voidMask & (1 << e)) n++;
+const memo = new Map();
+const transitions = new Map();
+function eachAllocation(total, suit, caps, visit) {
+const alloc = new Array(caps.length).fill(0);
+function rec(i, left) {
+if (i === caps.length) {
+if (left === 0) visit(alloc);
+return;
+}
+if (voidMasks[i] & (1 << suit)) {
+alloc[i] = 0; rec(i + 1, left); return;
+}
+let later = 0;
+for (let j = i + 1; j < caps.length; j++) {
+if (!(voidMasks[j] & (1 << suit))) later += caps[j];
+}
+const lo = Math.max(0, left - later);
+const hi = Math.min(caps[i], left);
+for (let n = lo; n <= hi; n++) { alloc[i] = n; rec(i + 1, left - n); }
+}
+rec(0, total);
+}
+function allocationWays(total, alloc) {
+let n = DEAL_FACT[total];
+for (const x of alloc) n /= DEAL_FACT[x];
 return n;
 }
-let ok = true;
-let q = 1;
-for (const c of order) {
-const e = T.eff[c];
-let total = 0;
-for (let i = 0; i < slots.length; i++) {
-if (!(slots[i].voidMask & (1 << e)) && remaining[i] > 0) total += remaining[i];
+function count(gi, caps) {
+if (gi === suits.length) return caps.every(x => x === 0) ? 1 : 0;
+const mk = gi + ':' + caps.join(',');
+if (memo.has(mk)) return memo.get(mk);
+const suit = suits[gi], total = groupSizes[suit];
+let ways = 0, options = [];
+eachAllocation(total, suit, caps, alloc => {
+const next = caps.map((x, i) => x - alloc[i]);
+const tail = count(gi + 1, next);
+if (tail) {
+const weight = allocationWays(total, alloc) * tail;
+ways += weight;
+options.push({ alloc: alloc.slice(), next, weight });
 }
-if (!total) { ok = false; break; }
-let pick = rng.next() * total;
-for (let i = 0; i < slots.length; i++) {
-if ((slots[i].voidMask & (1 << e)) || remaining[i] === 0) continue;
-pick -= remaining[i];
-if (pick <= 0) { assigned[i].push(c); q *= remaining[i] / total; remaining[i]--; break; }
+});
+transitions.set(mk, options);
+memo.set(mk, ways);
+return ways;
+}
+const total = count(0, capacities);
+const plan = {
+total,
+sample(rng) {
+const caps = capacities.slice(), out = new Array(5).fill(null);
+for (let gi = 0; gi < suits.length; gi++) {
+const suit = suits[gi], mk = gi + ':' + caps.join(',');
+const sum = count(gi, caps), options = transitions.get(mk);
+let pick = rng.next() * sum, chosen = options[options.length - 1];
+for (const o of options) {
+pick -= o.weight;
+if (pick <= 0) { chosen = o; break; }
+}
+out[suit] = chosen.alloc;
+for (let i = 0; i < caps.length; i++) caps[i] = chosen.next[i];
+}
+return out;
+}
+};
+if (DEAL_PLAN_CACHE.size >= 512) DEAL_PLAN_CACHE.delete(DEAL_PLAN_CACHE.keys().next().value);
+DEAL_PLAN_CACHE.set(key, plan);
+return plan;
+}
+function uniformConstrainedAssignment(cards, capacities, voidMasks, T, rng) {
+if (capacities.reduce((a, b) => a + b, 0) !== cards.length) return null;
+const assigned = capacities.map(() => []);
+if (voidMasks.every(mask => mask === 0)) {
+const order = rng.shuffle(cards.slice());
+let at = 0;
+for (let i = 0; i < capacities.length; i++) {
+assigned[i] = order.slice(at, at + capacities[i]); at += capacities[i];
+}
+return assigned;
+}
+for (let attempt = 0; attempt < 32; attempt++) {
+const order = rng.shuffle(cards.slice());
+let at = 0, ok = true;
+for (let i = 0; i < capacities.length; i++) {
+const end = at + capacities[i];
+for (let j = at; j < end; j++) {
+if (voidMasks[i] & (1 << T.eff[order[j]])) { ok = false; break; }
+}
+if (!ok) break;
+at = end;
+}
+if (ok) {
+at = 0;
+for (let i = 0; i < capacities.length; i++) {
+assigned[i] = order.slice(at, at + capacities[i]); at += capacities[i];
+}
+return assigned;
 }
 }
-if (!ok) continue;
+const groups = [[], [], [], [], []];
+for (const c of cards) groups[T.eff[c]].push(c);
+const plan = dealPlan(groups.map(g => g.length), capacities, voidMasks);
+if (!plan.total) return null;
+const allocations = plan.sample(rng);
+for (let suit = 0; suit < groups.length; suit++) {
+const cardsOfSuit = rng.shuffle(groups[suit].slice());
+const alloc = allocations[suit];
+if (!alloc) continue;
+let at = 0;
+for (let i = 0; i < capacities.length; i++) {
+assigned[i].push(...cardsOfSuit.slice(at, at + alloc[i]));
+at += alloc[i];
+}
+}
+return assigned;
+}
+function enumerateConstrainedAssignments(cards, capacities, voidMasks, T, limit) {
+if (capacities.reduce((a, b) => a + b, 0) !== cards.length) return null;
+const groups = [[], [], [], [], []];
+for (const c of cards) groups[T.eff[c]].push(c);
+const plan = dealPlan(groups.map(g => g.length), capacities, voidMasks);
+if (!plan.total || plan.total > limit + 0.5) return null;
+const slotOrder = capacities.map((_, i) => i).sort((a, b) => {
+let aa = 0, ab = 0;
+for (const c of cards) {
+if (!(voidMasks[a] & (1 << T.eff[c]))) aa++;
+if (!(voidMasks[b] & (1 << T.eff[c]))) ab++;
+}
+return aa - ab || capacities[b] - capacities[a];
+});
+const current = capacities.map(() => []), out = [];
+function rec(oi, remaining) {
+const slot = slotOrder[oi], need = capacities[slot];
+if (oi === slotOrder.length - 1) {
+if (remaining.length !== need ||
+remaining.some(c => voidMasks[slot] & (1 << T.eff[c]))) return;
+current[slot] = remaining.slice();
+out.push(current.map(a => a.slice()));
+return;
+}
+const eligible = [];
+for (let i = 0; i < remaining.length; i++) {
+if (!(voidMasks[slot] & (1 << T.eff[remaining[i]]))) eligible.push(i);
+}
+if (eligible.length < need) return;
+const chosen = [];
+function choose(at, left) {
+if (left === 0) {
+const picked = new Set(chosen);
+current[slot] = chosen.map(i => remaining[i]);
+rec(oi + 1, remaining.filter((_, i) => !picked.has(i)));
+return;
+}
+for (let j = at; j <= eligible.length - left; j++) {
+chosen.push(eligible[j]); choose(j + 1, left - 1); chosen.pop();
+}
+}
+choose(0, need);
+}
+rec(0, cards.slice());
+return out;
+}
+function worldFromAssignment(ctx, assigned) {
+const { slots } = ctx;
 const hands = [null, null, null, null];
 hands[ctx.payload.seat] = ctx.payload.hand.slice();
 if (ctx.exposedSeat >= 0) hands[ctx.exposedSeat] = ctx.exposedHand.slice();
-let kitty = null, deadFolded = null;
-let weight = 1 / q;
+let kitty = null, deadFolded = null, weight = 1;
+const contractSeat = ctx.payload.contract ? ctx.payload.contract.seat : -1;
+const inferDiscard = ctx.payload.phase === 'play' && contractSeat >= 0 &&
+contractSeat !== ctx.payload.seat && contractSeat !== ctx.folded;
 for (let i = 0; i < slots.length; i++) {
 if (slots[i].seat === -1) { kitty = assigned[i]; continue; }
 const s = slots[i].seat;
@@ -2264,15 +2721,37 @@ weight *= handAuctionLikelihood(assigned[i], ctx.evidence[s]);
 continue;
 }
 hands[s] = assigned[i];
+if (!(inferDiscard && s === contractSeat)) {
 const shown = ctx.shownBySeat ? ctx.shownBySeat[s] : [];
 const original = shown.length ? assigned[i].concat(shown) : assigned[i];
 weight *= handAuctionLikelihood(original, ctx.evidence[s]);
 }
-for (let s = 0; s < 4; s++) if (!hands[s]) hands[s] = [];
-return { hands, kitty, deadFolded, weight };
 }
-const relaxed = { ...ctx, slots: ctx.slots.map(s => ({ ...s, voidMask: 0 })) };
-return sampleWorld(relaxed, rng);
+let discardFit = 1;
+if (inferDiscard && kitty && kitty.length === 5) {
+const shown = ctx.shownBySeat ? ctx.shownBySeat[contractSeat] : [];
+const kept = hands[contractSeat].concat(shown);
+weight *= handAuctionLikelihood(kept, ctx.evidence[contractSeat]);
+discardFit = discardEvidenceLikelihood(kept, kitty, ctx.payload.contract.strain);
+weight *= discardFit;
+}
+for (let s = 0; s < 4; s++) if (!hands[s]) hands[s] = [];
+return { hands, kitty, deadFolded, weight, discardFit };
+}
+function enumerateWorlds(ctx, limit) {
+const assigned = enumerateConstrainedAssignments(ctx.unseen,
+ctx.slots.map(s => s.count), ctx.slots.map(s => s.voidMask), ctx.T, limit);
+return assigned ? assigned.map(a => worldFromAssignment(ctx, a)) : null;
+}
+function sampleWorld(ctx, rng) {
+const { unseen, slots, T } = ctx;
+let assigned = uniformConstrainedAssignment(unseen, slots.map(s => s.count),
+slots.map(s => s.voidMask), T, rng);
+if (!assigned) {
+assigned = uniformConstrainedAssignment(unseen, slots.map(s => s.count),
+slots.map(() => 0), T, rng);
+}
+return worldFromAssignment(ctx, assigned);
 }
 function copyTrickEntry(p) {
 return p.nom != null ? { seat: p.seat, card: p.card, nom: p.nom } : { seat: p.seat, card: p.card };
@@ -2297,6 +2776,8 @@ contractorSide,
 folded,
 misere: !!(opts && opts.misere),
 contractorSeat: opts && opts.contractorSeat != null ? opts.contractorSeat : -1,
+voids: opts && opts.voids ? opts.voids.slice() : [0, 0, 0, 0],
+buried: opts && opts.buried ? opts.buried.slice() : [],
 turn: leader
 };
 if (trick && trick.length) {
@@ -2318,8 +2799,37 @@ contractorSide: sim.contractorSide,
 folded: sim.folded,
 misere: sim.misere,
 contractorSeat: sim.contractorSeat,
+voids: sim.voids.slice(),
+buried: sim.buried.slice(),
 turn: sim.turn
 };
+}
+function redeterminizeSim(sim, observer, rng) {
+const view = simClone(sim);
+if (sim.misere) return view;
+const seats = [];
+const counts = [];
+const masks = [];
+const pool = [];
+for (let s = 0; s < 4; s++) {
+if (s === observer || s === sim.folded) continue;
+seats.push(s); counts.push(sim.hands[s].length); masks.push(sim.voids[s]);
+pool.push(...sim.hands[s]);
+}
+const buryUnknown = observer !== sim.contractorSeat && sim.buried.length > 0;
+if (buryUnknown) {
+seats.push(-1); counts.push(sim.buried.length); masks.push(0); pool.push(...sim.buried);
+}
+const assigned = uniformConstrainedAssignment(pool, counts, masks, sim.T, rng);
+if (!assigned) return view;
+view.hands[observer].sort((a, b) => a - b);
+for (let i = 0; i < seats.length; i++) {
+assigned[i].sort((a, b) => a - b);
+if (seats[i] < 0) view.buried = assigned[i];
+else view.hands[seats[i]] = assigned[i];
+}
+view.owner = buildOwner(view.hands, view.trick);
+return view;
 }
 function simLedSuit(sim) {
 if (!sim.trick.length) return null;
@@ -2346,6 +2856,10 @@ const i = h.indexOf(card);
 if (i < 0) throw new Error('sim: card not in hand');
 const ntJokerLead = sim.trick.length === 0 && card === JOKER && sim.trump === 4;
 if (ntJokerLead && nom == null) throw new Error('sim: NT joker lead requires a suit nomination');
+if (sim.trick.length) {
+const led = simLedSuit(sim);
+if (sim.T.eff[card] !== led) sim.voids[seat] |= (1 << led);
+}
 h.splice(i, 1);
 sim.owner[card] = 4;
 sim.trick.push(ntJokerLead ? { seat, card, nom } : { seat, card });
@@ -2454,6 +2968,24 @@ if (tpow(sim, c, led) > power) { mask |= (1 << s); break; }
 }
 return mask;
 }
+function cheapestLaterThreatPower(sim, mySeat, power, led) {
+let playedMask = 0;
+for (const p of sim.trick) playedMask |= 1 << p.seat;
+const T = sim.T;
+let cheapest = Infinity, s = sim.leader;
+for (let k = 0; k < 4; k++, s = (s + 1) & 3) {
+if ((playedMask & (1 << s)) || ((s ^ mySeat) & 1) === 0) continue;
+const h = sim.hands[s];
+let mustFollow = false;
+for (const c of h) if (T.eff[c] === led) { mustFollow = true; break; }
+for (const c of h) {
+if (mustFollow && T.eff[c] !== led) continue;
+const p = tpow(sim, c, led);
+if (p > power && p < cheapest) cheapest = p;
+}
+}
+return cheapest;
+}
 function greedyResponse(sim, seat, rng) {
 const legal = simLegal(sim, seat);
 if (legal.length === 1) return legal[0];
@@ -2510,7 +3042,7 @@ if (sim.T.eff[c] === e && sim.T.pow[c] > bp) { bp = sim.T.pow[c]; best = c; }
 }
 return best;
 }
-function policyMove(sim, seat, rng, temp) {
+function policyMove(sim, seat, rng, temp, forceScale) {
 const legal = simLegal(sim, seat);
 if (legal.length === 1) {
 const c = legal[0];
@@ -2525,9 +3057,9 @@ return sim.trick.length === 0
 : policyFollowMisere(sim, seat, legal);
 }
 if (sim.trick.length === 0) return policyLead(sim, seat, legal, rng, temp);
-return policyFollow(sim, seat, legal, rng, temp);
+return policyFollow(sim, seat, legal, rng, temp, forceScale);
 }
-function policyFollow(sim, seat, legal, rng, temp) {
+function policyFollow(sim, seat, legal, rng, temp, forceScale) {
 const best = trickBest(sim);
 const mySide = seat & 1;
 const partnerWinning = (best.seat & 1) === mySide;
@@ -2549,7 +3081,13 @@ else v = -cost * 0.15;
 } else {
 if (secureWin) v = 12 - cost * 0.12;
 else if (wins && isLast) v = 12 - cost * 0.12;
-else if (wins) v = 3 - cost * 0.12;
+else if (wins) {
+v = 3 - cost * 0.12;
+if (forceScale) {
+const forced = cheapestLaterThreatPower(sim, seat, p, best.led);
+if (forced < Infinity) v += forced * forceScale;
+}
+}
 else v = -cost * 0.15;
 }
 scored.push({ c, v: v + rng.next() * temp });
@@ -2559,6 +3097,40 @@ const top = scored[0];
 const topPow = tpow(sim, top.c, best.led);
 if (topPow <= best.power) return lowestDiscard(sim, seat, legal);
 return top.c;
+}
+function policyFollowTwo(sim, seat, legal, rng, temp) {
+const T = sim.T, mySide = seat & 1;
+const prior = policyFollow(sim, seat, legal, Core.rngFromSeed(0xf0110), 0);
+const before = sim.tricksSide[mySide];
+let bestC = legal[0], bestV = -Infinity;
+for (const c of legal) {
+const s2 = simClone(sim);
+simPlay(s2, seat, c);
+while (s2.trick.length !== 0 && !simDone(s2)) {
+simPlay(s2, s2.turn, greedyResponse(s2, s2.turn, rng));
+}
+if (!simDone(s2)) {
+const leader = s2.turn, ll = simLegal(s2, leader);
+let lead = ll.length === 1 ? ll[0]
+: policyLead(s2, leader, ll, Core.rngFromSeed(0xf0220), 0);
+if (lead === JOKER && s2.trump === 4) {
+lead = NOM_BASE + policyNomination(s2, leader);
+}
+simPlay(s2, leader, lead);
+while (s2.trick.length !== 0 && !simDone(s2)) {
+simPlay(s2, s2.turn, greedyResponse(s2, s2.turn, rng));
+}
+}
+const e = T.eff[c];
+const isTrump = sim.trump < 4 ? e === sim.trump : c === JOKER;
+const cost = T.pow[c] + (isTrump ? 18 : 0) + (c === JOKER ? 22 : 0);
+const gained = s2.tricksSide[mySide] - before;
+let v = gained * 12 - cost * 0.05 + (c === prior ? 2 : 0);
+if (!simDone(s2) && (s2.turn & 1) === mySide) v += 0.8;
+v += rng.next() * temp;
+if (v > bestV) { bestV = v; bestC = c; }
+}
+return bestC;
 }
 function policyNomination(sim, seat) {
 const partner = (seat + 2) & 3;
@@ -2640,6 +3212,55 @@ scored.push({ m, v: v + rng.next() * temp });
 }
 scored.sort((a, b) => b.v - a.v);
 return scored[0].m;
+}
+function policyLeadTwo(sim, seat, legal, rng, temp) {
+const T = sim.T, mySide = seat & 1;
+const bySuit = new Map();
+for (const c of legal) {
+const e = T.eff[c];
+if (!bySuit.has(e)) bySuit.set(e, []);
+bySuit.get(e).push(c);
+}
+const cands = [];
+for (const [, g] of bySuit) {
+g.sort((a, b) => T.pow[b] - T.pow[a]);
+cands.push(g[0]);
+if (g.length > 1) cands.push(g[g.length - 1]);
+if (g.length > 3) cands.push(g[1]);
+}
+if (sim.trump === 4) {
+const ji = cands.indexOf(JOKER);
+if (ji >= 0) cands[ji] = NOM_BASE + policyNomination(sim, seat);
+}
+const prior = policyLead(sim, seat, legal, Core.rngFromSeed(0x51ead), 0);
+const before = sim.tricksSide[mySide];
+let bestM = cands[0], bestV = -Infinity;
+for (const m of cands) {
+const s2 = simClone(sim);
+simPlay(s2, seat, m);
+while (s2.trick.length !== 0 && !simDone(s2)) {
+simPlay(s2, s2.turn, greedyResponse(s2, s2.turn, rng));
+}
+if (!simDone(s2)) {
+const leader = s2.turn;
+const ll = simLegal(s2, leader);
+let lead2 = ll.length === 1 ? ll[0] : policyLead(s2, leader, ll, Core.rngFromSeed(0x2ead), 0);
+if (lead2 === JOKER && s2.trump === 4) lead2 = NOM_BASE + policyNomination(s2, leader);
+simPlay(s2, leader, lead2);
+while (s2.trick.length !== 0 && !simDone(s2)) {
+simPlay(s2, s2.turn, greedyResponse(s2, s2.turn, rng));
+}
+}
+const c = moveCard(m);
+const isTrump = sim.trump < 4 ? T.eff[c] === sim.trump : c === JOKER;
+const cost = T.pow[c] + (isTrump ? 18 : 0) + (c === JOKER ? 22 : 0);
+const gained = s2.tricksSide[mySide] - before;
+let v = gained * 12 - cost * 0.06 + (m === prior ? 2 : 0);
+if (!simDone(s2) && (s2.turn & 1) === mySide) v += 0.8;
+v += rng.next() * temp;
+if (v > bestV) { bestV = v; bestM = m; }
+}
+return bestM;
 }
 function policyFollowMisere(sim, seat, legal) {
 const best = trickBest(sim);
@@ -2729,12 +3350,44 @@ if (v > bestV) { bestV = v; bestM = c; }
 }
 return bestM;
 }
-function playOut(sim, rng, temp) {
+function rolloutPolicyMove(sim, seat, rng, temp, leadDepth, redeterminize, followDepth, forceScale) {
+const choose = view => {
+if (!view.misere) {
+const legal = (leadDepth >= 2 && view.trick.length === 0) ||
+(followDepth >= 2 && view.trick.length > 0) ? simLegal(view, seat) : null;
+if (legal && legal.length > 1) {
+return view.trick.length === 0
+? policyLeadTwo(view, seat, legal, rng, temp)
+: policyFollowTwo(view, seat, legal, rng, temp);
+}
+}
+return policyMove(view, seat, rng, temp, forceScale);
+};
+const count = redeterminize === true ? 1 : (redeterminize | 0);
+let move;
+if (count > 1 && !sim.misere) {
+const votes = new Map();
+let bestN = -1;
+for (let i = 0; i < count; i++) {
+const m = choose(redeterminizeSim(sim, seat, rng));
+const n = (votes.get(m) || 0) + 1;
+votes.set(m, n);
+if (n > bestN) { bestN = n; move = m; }
+}
+} else {
+move = choose(count === 1 ? redeterminizeSim(sim, seat, rng) : sim);
+}
+const actualLegal = simLegal(sim, seat);
+if (!actualLegal.includes(moveCard(move))) move = policyMove(sim, seat, rng, temp, forceScale);
+return move;
+}
+function playOut(sim, rng, temp, leadDepth, redeterminize, followDepth, forceScale) {
 let guard = 0;
 while (!simDone(sim)) {
 if (++guard > 60) throw new Error('playOut runaway');
 const seat = sim.turn;
-const c = policyMove(sim, seat, rng, temp);
+const c = rolloutPolicyMove(sim, seat, rng, temp, leadDepth, redeterminize,
+followDepth, forceScale);
 const w = simPlay(sim, seat, c);
 if (w >= 0 && sim.misere && w === sim.contractorSeat) break;
 }
@@ -2860,11 +3513,12 @@ else if (sub === 0) { val = 0; break; }
 tt.set(key, val);
 return val;
 }
-function matchWinProb(us, them, target, floor) {
+function matchWinProb(us, them, target, floor, model) {
 const T = target || 500, F = floor || -500;
 if (us <= F && them <= F) return us > them ? 1 : us < them ? 0 : 0.5;
 if (us <= F) return 0;
 if (them <= F) return 1;
+if (model !== 'legacy') return clamp(sigmoid((us - them) / 235), 0.005, 0.995);
 let p = sigmoid((us - them) / 235);
 p += 0.10 * sigmoid((us - (T - 80)) / 45) - 0.10 * sigmoid((them - (T - 80)) / 45);
 p -= 0.08 * sigmoid(((F + 80) - us) / 45) - 0.08 * sigmoid(((F + 80) - them) / 45);
@@ -2880,13 +3534,16 @@ deltas[ctx.contractorSide] += sc.contractorDelta;
 deltas[1 - ctx.contractorSide] += sc.defenderDelta;
 const us = ctx.scores[ctx.mySide] + deltas[ctx.mySide];
 const them = ctx.scores[1 - ctx.mySide] + deltas[1 - ctx.mySide];
-let u = null;
-if (sc.made && ctx.scores[ctx.contractorSide] + deltas[ctx.contractorSide] >= ctx.target) {
-u = ctx.contractorSide === ctx.mySide ? 1 : 0;
+if (us <= ctx.floor || them <= ctx.floor) {
+if (us <= ctx.floor && them <= ctx.floor) return us > them ? 1 : us < them ? 0 : 0.5;
+return us <= ctx.floor ? 0 : 1;
 }
-if (u === null) u = matchWinProb(us, them, ctx.target, ctx.floor);
+if (sc.made && ctx.scores[ctx.contractorSide] + deltas[ctx.contractorSide] >= ctx.target) {
+return ctx.contractorSide === ctx.mySide ? 1 : 0;
+}
+const u = matchWinProb(us, them, ctx.target, ctx.floor, ctx.valueModel);
 if (ctx.contract.strain >= Core.MISERE) return u;
-return u + 0.004 * tricksSide[ctx.mySide];
+return clamp(u + 0.004 * tricksSide[ctx.mySide], 0.001, 0.999);
 }
 function equivClasses(legal, ctx) {
 if (legal.length <= 1) return legal.map(c => [c]);
@@ -2947,10 +3604,13 @@ function decidePlay(payload, opts) {
 assertFairPayload(payload);
 payload = canon(payload);
 opts = opts || {};
-const rng = Core.rngFromSeed(opts.seed == null ? 12345 : opts.seed);
+const baseSeed = opts.seed == null ? 12345 : opts.seed;
+const rng = Core.rngFromSeed(baseSeed);
+const rollBase = ((baseSeed * 100003 + 0x50017) >>> 0);
 const budgetMs = opts.budgetMs || 500;
 const deadline = now() + budgetMs;
 const ctx = buildPlayContext(payload);
+ctx.valueModel = opts.valueModel;
 const legal = Core.legalPlays(payload.hand, payload.trick || [], ctx.trump,
 { misere: ctx.misereContract });
 const ntJokerLead = ctx.trump === 4 && !(payload.trick || []).length && legal.includes(JOKER);
@@ -2974,27 +3634,45 @@ const endgame = cardsLeftPerPlayer <= (ctx.misereContract
 const maxCands = opts.maxCandidates || (endgame ? 10 : 6);
 if (cands.length > maxCands) {
 const quick = new Map();
-for (const c of cands) quick.set(c, 0);
+for (const c of cands) quick.set(c, { u: 0, w: 0 });
 for (let i = 0; i < 12; i++) {
 const w = sampleWorld(ctx, rng);
 const sim0 = worldSim(ctx, w);
 for (const c of cands) {
 const s2 = simClone(sim0);
 simPlay(s2, payload.seat, c);
-playOut(s2, rng, 0.4);
-quick.set(c, quick.get(c) + handUtility(ctx, s2.tricksSide));
+playOut(s2, Core.rngFromSeed(rollBase + i * 7919), 0.4);
+const a = quick.get(c);
+a.u += handUtility(ctx, s2.tricksSide) * w.weight;
+a.w += w.weight;
 }
 }
-cands = cands.slice().sort((a, b) => quick.get(b) - quick.get(a)).slice(0, maxCands);
+const qev = c => {
+const a = quick.get(c);
+return a.w ? a.u / a.w : -Infinity;
+};
+cands = cands.slice().sort((a, b) => qev(b) - qev(a)).slice(0, maxCands);
 }
 const acc = new Map();
 for (const c of cands) acc.set(c, { u: 0, w: 0, n: 0, trickWins: 0, makes: 0, oppRuffs: 0, tricksSum: 0 });
 const minWorlds = opts.minWorlds || 12;
 const maxWorlds = opts.maxWorlds || (endgame ? 90 : 160);
+const rolloutLeadDepth = opts.rolloutLeadDepth == null ? 2 : opts.rolloutLeadDepth;
+const rolloutFollowDepth = (opts.rolloutFollowDepth || 0) ||
+(opts.rolloutFollowAtRootCards === cardsLeftPerPlayer ? 2 : 0);
+const rolloutForceScale = opts.rolloutForceScale || 0;
+const redeterminizeRollouts = opts.redeterminizeRollouts || 0;
+const redeterminizeMix = opts.redeterminizeMix == null
+? (redeterminizeRollouts ? 1 : 0) : clamp(opts.redeterminizeMix, 0, 1);
+const exactBeliefWorlds = endgame
+? enumerateWorlds(ctx, opts.maxExactBeliefWorlds || 2200) : null;
 let worldsDone = 0;
+let solvedWorlds = 0, solveAborts = 0;
 const nodeBudget = { nodes: opts.maxNodes || 1200000 };
-while (worldsDone < maxWorlds && (worldsDone < minWorlds || now() < deadline)) {
-const w = sampleWorld(ctx, rng);
+while (exactBeliefWorlds
+? worldsDone < exactBeliefWorlds.length
+: worldsDone < maxWorlds && (worldsDone < minWorlds || now() < deadline)) {
+const w = exactBeliefWorlds ? exactBeliefWorlds[worldsDone] : sampleWorld(ctx, rng);
 const sim0 = worldSim(ctx, w);
 let solved = false;
 if (endgame && nodeBudget.nodes > 8000) {
@@ -3017,17 +3695,23 @@ pending.push([c, [side0, 10 - side0]]);
 }
 for (const [c, ts] of pending) recordOutcome(acc.get(c), ctx, ts, w.weight, null);
 solved = true;
+solvedWorlds++;
 } catch (e) {
 if (!e || !e.abort) throw e;
+solveAborts++;
 }
 }
 if (!solved) {
+const worldRollSeed = rollBase + 0x100000 + worldsDone * 7919;
+const mixDraw = (Math.imul(worldsDone + 1, 0x9e3779b1) >>> 0) / 4294967296;
+const worldRedet = mixDraw < redeterminizeMix ? redeterminizeRollouts : 0;
 for (const c of cands) {
 const s2 = simClone(sim0);
 const st = { oppRuffedMe: false };
 watchOpponentRuff(s2, payload.seat, moveCard(c), ctx, st);
 simPlay(s2, payload.seat, c);
-playOut(s2, rng, 0.35);
+playOut(s2, Core.rngFromSeed(worldRollSeed), 0.35,
+rolloutLeadDepth, worldRedet, rolloutFollowDepth, rolloutForceScale);
 recordOutcome(acc.get(c), ctx, s2.tricksSide, w.weight, st);
 }
 }
@@ -3046,11 +3730,20 @@ avgTricks: a.w > 0 ? a.tricksSum / a.w : 0
 };
 if (moveNom(c) != null) row.nom = moveNom(c);
 table.push(row);
-const tie = (ctx.misereContract ? 1 : -1) * Core.suitPower(moveCard(c), ctx.trump) * 1e-6;
-if (ev + tie > bestU) { bestU = ev + tie; bestC = c; }
+const p = Core.suitPower(moveCard(c), ctx.trump);
+const bp = Core.suitPower(moveCard(bestC), ctx.trump);
+const tieBetter = ctx.misereContract ? p > bp : p < bp;
+if (ev > bestU + 1e-12 || (Math.abs(ev - bestU) <= 1e-12 && tieBetter)) {
+bestU = ev; bestC = c;
+}
 }
 table.sort((a, b) => b.ev - a.ev);
-const out = { card: moveCard(bestC), worlds: worldsDone, endgame, table, classes };
+const out = {
+card: moveCard(bestC), worlds: worldsDone, endgame,
+exactBelief: !!exactBeliefWorlds, solvedWorlds, solveAborts,
+nodesUsed: (opts.maxNodes || 1200000) - nodeBudget.nodes,
+table, classes
+};
 if (moveNom(bestC) != null) out.jokerSuit = moveNom(bestC);
 return out;
 }
@@ -3086,7 +3779,9 @@ const leader = p.trick && p.trick.length ? p.trick[0].seat
 const sim = makeSim(ctx.T, ctx.trump, w.hands, leader, ctx.contractorSide, ctx.tricksSide,
 p.trick || [], {
 folded: ctx.folded,
-misere: ctx.misereContract, contractorSeat: ctx.contractorSeat
+misere: ctx.misereContract, contractorSeat: ctx.contractorSeat,
+voids: ctx.voids,
+buried: (p.buried || w.kitty || [])
 });
 return sim;
 }
@@ -3094,7 +3789,9 @@ function decideBid(payload, opts) {
 assertFairPayload(payload);
 payload = canon(payload);
 opts = opts || {};
-const rng = Core.rngFromSeed(opts.seed == null ? 777 : opts.seed);
+const baseSeed = opts.seed == null ? 777 : opts.seed;
+const rng = Core.rngFromSeed(baseSeed);
+const rollBase = ((baseSeed * 100003 + 0xb1d500) >>> 0);
 const budgetMs = opts.budgetMs || 600;
 const deadline = now() + budgetMs;
 const profile = opts.profile || {};
@@ -3153,6 +3850,7 @@ const passAcc = { u: 0, w: 0, n: 0 };
 const misIdx = [], stdIdx = [];
 candidates.forEach((c, i) => (c.strain >= Core.MISERE ? misIdx : stdIdx).push(i));
 const misExact = { nodes: opts.misereSolveNodes || 6000000 };
+const screenR = opts.screenRollouts || 0;
 const passedNow = [false, false, false, false];
 for (const a of (payload.auction || [])) if (!a.bid) passedNow[a.seat] = true;
 function worldEst(w, s) {
@@ -3165,17 +3863,8 @@ w._est[s] = e;
 return w._est[s];
 }
 function heuristicBid(w, s, highB) {
-const r = highB ? Core.bidRank(highB) : 0;
-const lb = Core.legalBidsAbove(r);
-const est2 = worldEst(w, s);
-let bestB = null;
-for (let st = 0; st <= 4; st++) {
-const minB = lb.find(b => b.strain === st);
-if (!minB) continue;
-if (est2[st] + KITTY_BOOST + PARTNER_BOOST >= minB.level + 0.3 &&
-(!bestB || minB.rank < bestB.rank)) bestB = minB;
-}
-return bestB;
+return quickAuctionBid(w.hands[s], s, highB, worldEst(w, s),
+opts.continuationPolicy === 'legacy');
 }
 function auctionOutcome(w, myBid) {
 const passed = passedNow.slice();
@@ -3195,14 +3884,16 @@ turn = (turn + 1) & 3;
 }
 return highB;
 }
-function outcomeUtility(w, finalB) {
+function outcomeUtility(w, finalB, rollRng) {
 if (!finalB) {
-return { u: matchWinProb(scores[mySide], scores[1 - mySide], target, floor), made: false, exact: true };
+return { u: matchWinProb(scores[mySide], scores[1 - mySide], target, floor, opts.valueModel), made: false, exact: true };
 }
 const declSeat = finalB.seat;
 const declHand = declSeat === payload.seat ? payload.hand : w.hands[declSeat];
 const bid = { level: finalB.level, strain: finalB.strain };
-const outcome = simulateDeclare(declSeat, declHand, w, bid, rng, misExact);
+const exactMis = declSeat === payload.seat ? misExact : null;
+const outcome = simulateDeclare(declSeat, declHand, w, bid, rollRng, exactMis, screenR,
+opts.rolloutLeadDepth || 0);
 const declSide = declSeat & 1;
 const sc = Core.scoreHand(bid, outcome.ct, { slamRule: payload.slamRule });
 const deltas = [0, 0];
@@ -3214,32 +3905,36 @@ let u = null;
 if (sc.made && scores[declSide] + deltas[declSide] >= target) {
 u = declSide === mySide ? 1 : 0;
 }
-if (u === null) u = matchWinProb(us, them, target, floor);
+if (u === null) u = matchWinProb(us, them, target, floor, opts.valueModel);
 const misMine = declSeat === payload.seat && bid.strain >= Core.MISERE;
 return { u, made: sc.made && declSeat === payload.seat, exact: !misMine || outcome.exact !== false };
 }
 const stdDeadline = misIdx.length ? now() + Math.max(60, (deadline - now()) * 0.5) : deadline;
 let worldsUsed = 0;
-for (const w of worlds) {
+for (let wi = 0; wi < worlds.length; wi++) {
+const w = worlds[wi];
 if (worldsUsed >= 8 && now() > stdDeadline - 25) break;
+const worldRollSeed = rollBase + wi * 7919;
 for (const ci of stdIdx) {
-const r2 = outcomeUtility(w, auctionOutcome(w, candidates[ci]));
+const r2 = outcomeUtility(w, auctionOutcome(w, candidates[ci]), Core.rngFromSeed(worldRollSeed));
 accs[ci].u += r2.u * w.weight; accs[ci].w += w.weight; accs[ci].n++;
 if (r2.made) accs[ci].makes += w.weight;
 }
-const rp = outcomeUtility(w, auctionOutcome(w, null));
+const rp = outcomeUtility(w, auctionOutcome(w, null), Core.rngFromSeed(worldRollSeed));
 passAcc.u += rp.u * w.weight;
 passAcc.w += w.weight; passAcc.n++;
 worldsUsed++;
 }
 if (misIdx.length) {
 let misWorlds = 0;
-for (const w of worlds) {
+for (let wi = 0; wi < worlds.length; wi++) {
+const w = worlds[wi];
 if (misWorlds >= 8 && now() > deadline - 30) break;
 if (misExact.nodes <= 20000) break;
 let counted = false;
+const worldRollSeed = rollBase + 0x100000 + wi * 7919;
 for (const ci of misIdx) {
-const r2 = outcomeUtility(w, auctionOutcome(w, candidates[ci]));
+const r2 = outcomeUtility(w, auctionOutcome(w, candidates[ci]), Core.rngFromSeed(worldRollSeed));
 if (!r2.exact) continue;
 accs[ci].u += r2.u * w.weight; accs[ci].w += w.weight; accs[ci].n++;
 if (r2.made) accs[ci].makes += w.weight;
@@ -3255,35 +3950,49 @@ makeRate: accs[ci].w ? accs[ci].makes / accs[ci].w : 0,
 n: accs[ci].n
 }));
 const passEv = passAcc.w ? passAcc.u / passAcc.w
-: matchWinProb(scores[mySide], scores[1 - mySide], target, floor);
+: matchWinProb(scores[mySide], scores[1 - mySide], target, floor, opts.valueModel);
 const risk = profile.risk || 0;
 const pressure = profile.pressure || 0;
 let margin = 0.012 - risk * 0.010;
 if (partnerHolds) margin += 0.035;
 let best = null;
+const bestStrainEst = Math.max(...est);
 for (const r of results) {
 let ev = r.ev;
 if (oppHolds && pressure > 0) ev += pressure * 0.006;
+if (r.bid.strain <= Core.NOTRUMP) {
+ev -= 0.004 * (bestStrainEst - est[r.bid.strain]);
+}
 if (r.bid.strain >= Core.MISERE) ev -= 0.4 / (r.n + 3);
 if (!best || ev > best.adjEv) best = { ...r, adjEv: ev };
 }
 const table = results.map(r => ({ bid: r.bid, ev: r.ev, makeRate: r.makeRate })).sort((a, b) => b.ev - a.ev);
-const misRisk = best && best.bid.strain >= Core.MISERE ? 0.03 : 0;
-if (!best || best.adjEv <= passEv + margin + misRisk) {
+const probabilityScale = Math.max(0.04, 4 * passEv * (1 - passEv));
+margin *= probabilityScale;
+const misRisk = best && best.bid.strain >= Core.MISERE
+? 0.03 * Math.max(0.2, probabilityScale) : 0;
+const closeNow = best && scores[mySide] >= target && !partnerHolds &&
+best.makeRate >= 0.80 && best.adjEv >= passEv - 0.01;
+if (!closeNow && (!best || best.adjEv <= passEv + margin + misRisk)) {
 return { action: 'pass', passEv, table, worlds: worldsUsed };
 }
 return { action: 'bid', bid: { level: best.bid.level, strain: best.bid.strain }, ev: best.adjEv, passEv, makeRate: best.makeRate, table, worlds: worldsUsed };
 }
-function simulateDeclare(declSeat, declHand, w, bid, rng, misExact) {
+function simulateDeclare(declSeat, declHand, w, bid, rng, misExact, screenR, leadDepth) {
 if (bid.strain >= Core.MISERE) return simulateDeclareMisere(declSeat, declHand, w, bid, rng, misExact);
 const T = Core.buildTables(bid.strain);
 const kitty = w.kitty || [];
 const hand15 = declHand.concat(kitty);
-const keep = hand15.length > 10 ? quickKeep(hand15, bid.strain) : hand15.slice();
+const keep = hand15.length > 10
+? screenedKeep(hand15, bid.strain, w, declSeat, (declSeat * 131 + bid.strain) * 7717 + 101, screenR)
+: hand15.slice();
+const keptSet = new Set(keep);
+const buried = hand15.filter(c => !keptSet.has(c));
 const hands = w.hands.map((h, s) => s === declSeat ? keep : (h ? h.slice() : null));
 for (let s = 0; s < 4; s++) if (!hands[s]) hands[s] = [];
-const sim = makeSim(T, bid.strain, hands, declSeat, declSeat & 1, [0, 0], []);
-playOut(sim, rng, 0.4);
+const sim = makeSim(T, bid.strain, hands, declSeat, declSeat & 1, [0, 0], [],
+{ contractorSeat: declSeat, buried });
+playOut(sim, rng, 0.4, leadDepth);
 return { ct: sim.tricksSide[declSeat & 1], tricksSide: sim.tricksSide };
 }
 function simulateDeclareMisere(declSeat, declHand, w, bid, rng, exactPool) {
@@ -3315,7 +4024,7 @@ exactPool.nodes -= before;
 playOut(sim, rng, 0.15);
 return { ct: sim.tricksSide[declSeat & 1], tricksSide: sim.tricksSide, exact: false };
 }
-function declareUtility(mySide, scores, target, floor, bid, outcome, slamRule) {
+function declareUtility(mySide, scores, target, floor, bid, outcome, slamRule, valueModel) {
 const declSide = mySide;
 const sc = Core.scoreHand({ level: bid.level, strain: bid.strain }, outcome.ct, { slamRule });
 const deltas = [0, 0];
@@ -3324,7 +4033,7 @@ deltas[1 - declSide] += sc.defenderDelta;
 const us = scores[mySide] + deltas[mySide];
 const them = scores[1 - mySide] + deltas[1 - mySide];
 let u = sc.made && us >= (target || 500) ? 1 : null;
-if (u === null) u = matchWinProb(us, them, target, floor);
+if (u === null) u = matchWinProb(us, them, target, floor, valueModel);
 return { u, made: sc.made };
 }
 function combinations(arr, k) {
@@ -3368,16 +4077,23 @@ const playCtx = {
 contract: payload.contract, contractorSide: payload.contract.seat & 1,
 mySide, scores: absScores(payload), target: payload.target || 500,
 floor: payload.floor || -500, slamRule: payload.slamRule !== false,
-trump: playStrain
+trump: playStrain, valueModel: opts.valueModel
 };
 const T = Core.buildTables(playStrain);
 const foldedSeat = isMis ? (payload.seat + 2) & 3 : -1;
-function simKeep(keep, w, wi) {
+const rolloutLeadDepth = opts.rolloutLeadDepth || 0;
+const redeterminizeRollouts = opts.redeterminizeRollouts || 0;
+function simKeep(finalist, w, wi) {
+const keep = finalist.keep;
 const hands = w.hands.map((h, s) =>
 s === payload.seat ? keep.slice() : (s === foldedSeat ? [] : h.slice()));
 const sim = makeSim(T, playStrain, hands, payload.seat, playCtx.contractorSide, [0, 0], [],
-isMis ? { folded: foldedSeat, misere: true, contractorSeat: payload.seat } : undefined);
-playOut(sim, Core.rngFromSeed(rollBase + wi * 7919), isMis ? 0.15 : 0.4);
+isMis
+? { folded: foldedSeat, misere: true, contractorSeat: payload.seat,
+buried: finalist.disc }
+: { contractorSeat: payload.seat, buried: finalist.disc });
+playOut(sim, Core.rngFromSeed(rollBase + wi * 7919), isMis ? 0.15 : 0.4,
+rolloutLeadDepth, redeterminizeRollouts);
 return sim.tricksSide;
 }
 function runStage(pool, worlds) {
@@ -3385,7 +4101,7 @@ const acc = pool.map(() => ({ u: 0, w: 0, n: 0, makes: 0 }));
 for (let wi = 0; wi < worlds.length; wi++) {
 const w = worlds[wi];
 for (let i = 0; i < pool.length; i++) {
-const ts = simKeep(pool[i].keep, w, wi);
+const ts = simKeep(pool[i], w, wi);
 const u = handUtility(playCtx, ts);
 acc[i].u += u * w.weight; acc[i].w += w.weight; acc[i].n++;
 if (isMis ? ts[playCtx.contractorSide] === 0
@@ -3402,14 +4118,28 @@ n: acc[i].n
 }
 const K = Math.min(opts.topK || 48, scored.length);
 let pool = scored.slice(0, K);
+if (opts.ensureVoidPatterns !== false && !isMis && K >= 48) {
+const seen = new Set(pool.map(f => f.keep.join(',')));
+const byKeep = new Map(scored.map(f => [f.keep.join(','), f]));
+for (const keep of voidPatterns(hand15, strain)) {
+const key = keep.slice().sort((a, b) => a - b).join(',');
+if (!seen.has(key) && byKeep.has(key)) {
+pool.push(byKeep.get(key)); seen.add(key);
+}
+}
+}
 const screenWorlds = [];
 for (let i = 0; i < (opts.screenWorlds || 12); i++) screenWorlds.push(sampleWorld(ctx, rng));
 let evaluated = runStage(pool, screenWorlds);
 evaluated.sort((a, b) => b.ev - a.ev);
 const survivors = evaluated.slice(0, Math.min(opts.survivors || 16, evaluated.length));
-const deepWorlds = screenWorlds.slice();
+const deepWorlds = [];
 const maxW = opts.maxWorlds || 40;
-while (deepWorlds.length < maxW && now() < deadline - 60) deepWorlds.push(sampleWorld(ctx, rng));
+const minDeep = Math.min(4, maxW);
+while (deepWorlds.length < minDeep || (deepWorlds.length < maxW && now() < deadline - 60)) {
+deepWorlds.push(sampleWorld(ctx, rng));
+if (deepWorlds.length >= maxW) break;
+}
 let finalTable = runStage(survivors, deepWorlds);
 finalTable.sort((a, b) => b.ev - a.ev);
 const bestF = finalTable[0];
@@ -3463,7 +4193,9 @@ return out;
 function evaluateForReview(record, opts) {
 const o = { ...(opts || {}), budgetMs: (opts && opts.budgetMs) || 1200 };
 if (record.kind === 'play') {
-const res = decidePlay(record.payload, { ...o, maxWorlds: 220, minWorlds: 30, maxCandidates: 24 });
+const res = decidePlay(record.payload, {
+...o, maxWorlds: o.maxWorlds || 220, minWorlds: 30, maxCandidates: 24
+});
 const table = res.table || [];
 const chosen = table.find(t => (t.nom != null || record.chosenNom != null)
 ? (t.card === record.chosen && t.nom === record.chosenNom)
@@ -3521,12 +4253,15 @@ return w === Infinity ? 0 : w;
 }
 return {
 assertFairPayload, inferVoids, computeInsights,
-estimateTricks, evalKeepHand, quickKeep,
+estimateTricks, bidPotentialFromEstimate, bidPotential, bidFeatureVector, bidPotentialFeatures,
+evalKeepHand, quickKeep, voidKeep, voidPatterns,
 misereDanger, evalKeepHandMisere, quickKeepMisere, solveWorldMisere,
-auctionEvidence, handAuctionLikelihood,
-buildBeliefContext, sampleWorld,
-makeSim, simClone, simLegal, simPlay, simDone,
-policyMove, playOut, greedyResponse, policyNomination,
+auctionEvidence, handAuctionLikelihoodModel, handAuctionLikelihood,
+discardEvidenceLikelihood, quickAuctionBid,
+buildBeliefContext, uniformConstrainedAssignment, enumerateConstrainedAssignments,
+enumerateWorlds, sampleWorld, worldSim,
+makeSim, simClone, redeterminizeSim, simLegal, simPlay, simDone,
+policyMove, policyFollow, policyFollowTwo, policyLeadTwo, playOut, greedyResponse, policyNomination,
 NOM_BASE, moveCard, moveNom,
 solveWorld, worldMoves,
 matchWinProb, handUtility, buildPlayContext,
@@ -3568,6 +4303,7 @@ sound: Persist.get('sound', true),
 counting: Persist.get('counting', false),
 hints: Persist.get('hints', false),
 motion: Persist.get('motion', 'auto'),
+playMode: Persist.get('playMode', 'match'),
 autopilot: /[?&]autoplay=1/.test(location.search)
 };
 const PACE_MULT = { fast: 0.62, standard: 1, deliberate: 1.5 };
@@ -3582,10 +4318,16 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 110, bidWorlds: 70, topK: 64, discardWorlds: 32 },
-elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 6, playWorlds: 220, bidWorlds: 120, topK: 128, discardWorlds: 48 }
+standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
+if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
+const MODES = {
+match: { label: 'Match to 500', note: 'First side to 500 by making a contract' },
+practice: { label: 'Bid practice', note: 'Win the auction or the deal moves on · no score kept' }
+};
+if (!MODES[settings.playMode]) { settings.playMode = 'match'; Persist.set('playMode', 'match'); }
 const NAME_POOL = ['Coley', 'David', 'Peli', 'BJ'];
 let playerName = Persist.get('playerName', null);
 if (!NAME_POOL.includes(playerName)) playerName = null;
@@ -4023,10 +4765,18 @@ reviewResults: null,
 busy: false,
 composer: { level: 6, strain: 0, special: null },
 pendingDec: null,
-lastHandSummary: null
+lastHandSummary: null,
+mode: 'match',
+practice: { deals: 0, won: 0, made: 0 }
 };
 function humanTurn(kind) {
 return G.hand && !G.busy && G.humanResolver && G.humanResolver.kind === kind;
+}
+function practice() { return G.mode === 'practice'; }
+function bidScoreNote(bid) {
+const v = Core.bidValue(bid.level, bid.strain);
+if (bid.strain >= Core.MISERE) return `made +${v} · failed −${v} · defenders score nothing`;
+return `worth ${v} · made +${v} · failed −${v} · defenders 10 a trick`;
 }
 function renderNames() {
 $('pname0').textContent = seatLabel(0);
@@ -4042,6 +4792,17 @@ $('pname2').textContent = bots[2].name;
 $('pname3').textContent = bots[3].name;
 }
 function renderScores(animateSide) {
+const isP = practice();
+document.documentElement.classList.toggle('practice', isP);
+$('practUs').hidden = !isP;
+$('practThem').hidden = !isP;
+if (isP) {
+const p = G.practice;
+$('practUs').textContent = 'Bid practice';
+$('practThem').textContent = p.deals
+? `${p.won} of ${p.deals} auction${p.deals === 1 ? '' : 's'} won`
+: 'no score kept';
+}
 const s = G.match ? G.match.scores : [0, 0];
 $('scoreUs').textContent = s[0];
 $('scoreThem').textContent = s[1];
@@ -4573,8 +5334,11 @@ $('btnBid').innerHTML = `Bid ${Core.STRAIN_NAME[special]}`;
 $('btnBid').setAttribute('aria-label',
 `Bid ${Core.STRAIN_NAME[special]}: lose every trick playing alone, worth ${Core.bidValue(0, special)} points`);
 const high = G.hand && G.hand.highBid;
-const winsSp = G.match && G.match.scores[0] + Core.bidValue(0, special) >= G.match.target;
-$('bidNote').innerHTML = `lose every trick · partner sits out · worth ${Core.bidValue(0, special)}${winsSp ? ' · <b>wins if made</b>' : ''}${high ? ` · beats ${bidHtml(high)}` : ''}`;
+const winsSp = !practice() && G.match && G.match.scores[0] + Core.bidValue(0, special) >= G.match.target;
+$('bidNote').innerHTML = practice()
+? `lose every trick · partner sits out · ${bidScoreNote({ level: 0, strain: special })}`
+: `lose every trick · partner sits out · worth ${Core.bidValue(0, special)}${winsSp ? ' · <b>wins if made</b>' : ''}${high ? ` · beats ${bidHtml(high)}` : ''}`;
+renderBidValues();
 return;
 }
 const ok = composerLegal(level, strain);
@@ -4582,10 +5346,68 @@ setOff($('btnBid'), !ok || !humanTurn('bid'), bidBtnWhy(ok));
 $('btnBid').innerHTML = `Bid ${level}${suitSpan(strain)}`;
 $('btnBid').setAttribute('aria-label', `Bid ${level} ${Core.STRAIN_NAME[strain]}, worth ${Core.bidValue(level, strain)} points`);
 const high = G.hand && G.hand.highBid;
-const wins = G.match && G.match.scores[0] + Core.bidValue(level, strain) >= G.match.target;
+const wins = !practice() && G.match && G.match.scores[0] + Core.bidValue(level, strain) >= G.match.target;
 $('bidNote').innerHTML = ok
-? `worth ${Core.bidValue(level, strain)}${wins ? ' · <b>wins if made</b>' : ''}${high ? ` · beats ${bidHtml(high)} (${esc(seatName(high.seat))})` : ''}`
+? (practice()
+? bidScoreNote({ level, strain })
+: `worth ${Core.bidValue(level, strain)}${wins ? ' · <b>wins if made</b>' : ''}${high ? ` · beats ${bidHtml(high)} (${esc(seatName(high.seat))})` : ''}`)
 : 'No legal bid selected';
+renderBidValues();
+}
+function renderBidValues() {
+const el = $('bidValues');
+if (!practice() || !G.hand || G.hand.phase !== 'bidding' || !app.classList.contains('phase-bidding')) {
+el.hidden = true;
+el.innerHTML = '';
+return;
+}
+const hv = currentHighRank();
+const high = G.hand.highBid;
+const { level, strain, special } = G.composer;
+const cell = (l, st) => {
+const v = Core.bidValue(l, st);
+const rank = st >= Core.MISERE ? Core.bidRank({ level: 0, strain: st }) : v;
+const legal = st >= Core.MISERE ? specialLegal(st) : rank > hv;
+const isHigh = !!high && high.strain === st && (st >= Core.MISERE || high.level === l);
+const isSel = st >= Core.MISERE ? special === st : (special == null && level === l && strain === st);
+const cls = ['bv-cell', legal ? '' : 'out', isHigh ? 'high' : '', isSel ? 'sel' : ''].filter(Boolean).join(' ');
+const label = st >= Core.MISERE ? `${Core.STRAIN_NAME[st]} <b>${v}</b>` : String(v);
+const aria = st >= Core.MISERE
+? `${Core.STRAIN_NAME[st]}, worth ${v}`
+: `${l} ${Core.STRAIN_NAME[st]}, worth ${v}${isHigh ? ', the standing bid' : legal ? '' : ', already beaten'}`;
+return `<button type="button" class="${cls}" data-level="${l}" data-strain="${st}" aria-label="${aria}"${isSel ? ' aria-pressed="true"' : ''}>${label}</button>`;
+};
+let html = `<div class="bv-title">Bid values${high ? ` · standing ${bidHtml(high)}` : ''}</div><table><tr><th></th>`;
+for (let st = 0; st <= 4; st++) html += `<th>${suitSpan(st)}</th>`;
+html += '</tr>';
+for (let l = 6; l <= 10; l++) {
+html += `<tr><td class="bv-l">${l}</td>`;
+for (let st = 0; st <= 4; st++) html += `<td>${cell(l, st)}</td>`;
+html += '</tr>';
+}
+html += '</table>';
+html += `<div class="bv-special">${cell(0, Core.MISERE)}${cell(0, Core.OPEN_MISERE)}</div>`;
+html += '<div class="bv-legend">made +value · failed −value · defenders 10 a trick</div>';
+el.innerHTML = html;
+el.hidden = false;
+}
+function bidValuesInit() {
+$('bidValues').addEventListener('click', e => {
+const b = e.target.closest('.bv-cell');
+if (!b || !G.hand) return;
+Sound.ensure();
+const st = +b.dataset.strain, l = +b.dataset.level;
+if (st >= Core.MISERE) {
+if (!specialLegal(st)) return;
+G.composer.special = G.composer.special === st ? null : st;
+} else {
+if (Core.bidValue(l, st) <= currentHighRank()) return;
+G.composer.level = l;
+G.composer.strain = st;
+G.composer.special = null;
+}
+composerRefresh();
+});
 }
 async function startMatch(seed) {
 if (!playerName) setPlayerName(NAME_POOL[0]);
@@ -4594,6 +5416,8 @@ assignBots(G.matchIndex);
 renderNames();
 G.match = Engine.newMatch({ seed });
 G.hand = null;
+G.mode = MODES[settings.playMode] ? settings.playMode : 'match';
+G.practice = { deals: 0, won: 0, made: 0 };
 saveLiveMatch();
 renderScores();
 renderContractChip();
@@ -4602,6 +5426,7 @@ await nextHand();
 }
 async function nextHand() {
 G.hand = Engine.startHand(G.match);
+if (practice()) { G.practice.deals++; renderScores(); }
 G.records = [];
 G.reviewResults = null;
 G.discardSel = new Set();
@@ -4628,6 +5453,7 @@ $('bidComposer').hidden = true;
 $('discardBar').hidden = true;
 $('discardPreview').hidden = true;
 $('jokerCall').hidden = true;
+$('bidValues').hidden = true;
 toggleAuctionPeek(false);
 resetComposer();
 setPhaseClass('dealing');
@@ -4640,7 +5466,7 @@ setPhaseClass('bidding');
 await auctionLoop();
 if (G.hand.phase === 'redeal') {
 status('All four passed — throwing the hand in.');
-await showTableMsg('All pass — redeal', 900);
+await showTableMsg(practice() ? 'All pass — new deal' : 'All pass — redeal', 900);
 Engine.scoreHandIntoMatch(G.match, G.hand);
 saveLiveMatch();
 return nextHand();
@@ -4648,6 +5474,14 @@ return nextHand();
 renderContractChip();
 renderAuctionStrip();
 const c = G.hand.contract;
+if (practice() && c.seat !== 0) {
+status(`${esc(seatFullName(c.seat))} wins the auction with <b>${bidHtml(c)}</b> · ${bidScoreNote(c)} · you need the winning bid to play — new deal`);
+say(`${seatFullName(c.seat)} wins the auction with ${Core.bidLabel(c)}. You did not hold the winning bid, so a new hand is dealt.`);
+await showTableMsg(`${esc(seatName(c.seat))} wins ${bidHtmlShort(c)} · new deal`, 1600);
+Engine.skipHand(G.match, G.hand);
+return nextHand();
+}
+if (practice()) { G.practice.won++; renderScores(); }
 status(`${esc(seatFullName(c.seat))} win${c.seat === 0 ? '' : 's'} the auction: <b>${bidHtml(c)}</b> · ${Core.bidValue(c.level, c.strain)} points`);
 await showTableMsg(`${esc(seatName(c.seat))}: ${c.strain >= Core.MISERE ? Core.STRAIN_NAME[c.strain] : c.level + Core.STRAIN_CHAR[c.strain]}`, 850);
 $('bidComposer').hidden = true;
@@ -4675,6 +5509,7 @@ renderFeltMark();
 await playLoop();
 ha.style.minHeight = '';
 await scoringSequence();
+if (practice()) return nextHand();
 if (G.match.finished) {
 await endScreen();
 } else {
@@ -4761,7 +5596,7 @@ if (bid) Sound.bid(); else Sound.pass();
 showBidChipOnPlate(seat, bid);
 renderAuctionStrip();
 status(bid
-? `${esc(seatFullName(seat))} bids <b>${bidHtml(bid)}</b>`
+? `${esc(seatFullName(seat))} bids <b>${bidHtml(bid)}</b>${practice() ? ` · ${bidScoreNote(bid)}` : ''}`
 : `${esc(seatFullName(seat))} passes`);
 composerRefresh();
 await AnimQ.sleep(420, true);
@@ -4769,6 +5604,7 @@ await AnimQ.sleep(420, true);
 }
 setActivePlate(-1);
 $('bidComposer').hidden = true;
+renderBidValues();
 }
 async function autopilotBid() {
 const payload = Engine.botPayload(G.match, G.hand, 0);
@@ -4866,6 +5702,10 @@ seed: Engine.decisionSeed(G.match, G.hand),
 budgetMs: playBudgetFor(payload.hand.length),
 maxWorlds: budgets().playWorlds,
 endgameThreshold: budgets().endgameThreshold,
+rolloutFollowDepth: budgets().followDepth,
+rolloutFollowAtRootCards: budgets().followAtRootCards,
+redeterminizeRollouts: budgets().redeterminize,
+redeterminizeMix: budgets().redeterminizeMix,
 profile: bots[seat]
 };
 return Bot.decide('play', payload, opts).catch(() => {
@@ -5043,8 +5883,14 @@ hintBusy = true;
 const point = G.hand.tricks.length * 10 + G.hand.trick.length;
 b.textContent = 'Thinking…';
 try {
-const dec = await Bot.decide('play', Engine.botPayload(G.match, G.hand, 0),
-{ seed: 424242, budgetMs: budgets().playEarly, maxWorlds: budgets().playWorlds });
+const payload = Engine.botPayload(G.match, G.hand, 0);
+const dec = await Bot.decide('play', payload,
+{ seed: 424242, budgetMs: playBudgetFor(payload.hand.length), maxWorlds: budgets().playWorlds,
+endgameThreshold: budgets().endgameThreshold,
+rolloutFollowDepth: budgets().followDepth,
+rolloutFollowAtRootCards: budgets().followAtRootCards,
+redeterminizeRollouts: budgets().redeterminize,
+redeterminizeMix: budgets().redeterminizeMix });
 const samePoint = G.hand && G.hand.phase === 'playing' &&
 G.hand.tricks.length * 10 + G.hand.trick.length === point;
 if (samePoint && humanTurn('play')) {
@@ -5078,9 +5924,15 @@ const cSide = Core.sideOf(c.seat);
 const before = G.match.scores.slice();
 const outcome = Engine.scoreHandIntoMatch(G.match, hand);
 const res = outcome.result;
+if (practice()) {
+G.match.scores = [0, 0];
+G.match.finished = false;
+G.match.result = null;
+if (res.made && c.seat === 0) G.practice.made++;
+}
 const after = G.match.scores.slice();
 saveLiveMatch();
-bumpStats(st => {
+if (!practice()) bumpStats(st => {
 st.hands = (st.hands || 0) + 1;
 if (c.seat === 0) {
 st.humanContracts = (st.humanContracts || 0) + 1;
@@ -5111,10 +5963,19 @@ const tallyHtml = isMis ? `
 <div class="tally-row"><span>${esc(seatFullName(Core.partnerOf(c.seat)))}</span><b id="tallyPartner">0</b></div>
 <div class="tally-row total"><span>Partnership</span><b id="tallyTotal">0 / ${c.level}</b></div>
 </div>`;
-panel.innerHTML = `
-<h2>${bidHtml(c)} · ${esc(seatFullName(c.seat))}</h2>
-${tallyHtml}
-<div class="tally-verdict ${res.made ? 'made' : 'missed'}" id="tallyVerdict"></div>
+const signed = d => (d >= 0 ? '+' : '−') + Math.abs(d);
+const scoreLinesHtml = practice() ? `
+<div class="score-lines">
+<div class="score-line">
+<div class="lbl">You &amp; ${esc(seatName(2))}</div>
+<div class="val ${outcome.deltas[0] >= 0 ? 'up' : 'down'}">${signed(outcome.deltas[0])}</div>
+</div>
+<div class="score-line">
+<div class="lbl">${esc(seatName(3))} &amp; ${esc(seatName(1))}</div>
+<div class="val ${outcome.deltas[1] >= 0 ? 'up' : 'down'}">${signed(outcome.deltas[1])}</div>
+</div>
+</div>
+<div class="need-line explain">${practiceExplain(c, res, total)}</div>` : `
 <div class="score-lines">
 <div class="score-line">
 <div class="lbl">You &amp; ${esc(seatName(2))}</div>
@@ -5127,7 +5988,12 @@ ${tallyHtml}
 <div class="delta ${outcome.deltas[1] >= 0 ? 'up' : 'down'}">${outcome.deltas[1] >= 0 ? '+' : ''}${outcome.deltas[1]}</div>
 </div>
 </div>
-<div class="need-line" id="needLine"></div>
+<div class="need-line" id="needLine"></div>`;
+panel.innerHTML = `
+<h2>${bidHtml(c)} · ${esc(seatFullName(c.seat))}</h2>
+${tallyHtml}
+<div class="tally-verdict ${res.made ? 'made' : 'missed'}" id="tallyVerdict"></div>
+${scoreLinesHtml}
 <div id="coachArea"><div class="review-pending" id="coachPending">Coach is reviewing the hand…</div></div>
 <div class="panel-actions">
 <button class="ghost" id="btnReveal">Show all hands</button>
@@ -5151,14 +6017,18 @@ verdict.textContent = res.made
 say(`${contractTeamNames} took ${total} of ${c.level}. ${res.made ? 'Contract made' : 'Contract missed'}. ${defTeamNames} score ${defTricks * 10} for ${defTricks} tricks.`);
 }
 await AnimQ.sleep(350, true);
+if (!practice()) {
 await Promise.all([
 countTo(panel.querySelector('#scoreValUs'), before[0], after[0]),
 countTo(panel.querySelector('#scoreValThem'), before[1], after[1])
 ]);
+}
 renderScores();
+if (!practice()) {
 bumpScore($('scoreUs'), outcome.deltas[0]);
 bumpScore($('scoreThem'), outcome.deltas[1]);
-if (!G.match.finished) {
+}
+if (!G.match.finished && !practice()) {
 const t = G.match.target;
 const part = (s, name) => s >= t
 ? `${name} over ${t} — a made contract wins`
@@ -5181,6 +6051,24 @@ resolve();
 panel.querySelector('#btnContinue').addEventListener('click', finish);
 if (settings.autopilot) setTimeout(finish, 400);
 });
+}
+function practiceExplain(c, res, total) {
+const v = res.value;
+const who = c.seat === 0 ? 'you' : esc(seatFullName(c.seat));
+const side = Core.sideOf(c.seat) === 0 ? `you &amp; ${esc(seatName(2))}` : `${esc(seatName(3))} &amp; ${esc(seatName(1))}`;
+if (res.misere) {
+const name = Core.STRAIN_NAME[c.strain];
+return res.made
+? `${name} is worth ${v}. ${who === 'you' ? 'You' : who} lost every trick, so <b>+${v}</b>. Defenders score nothing in misère.`
+: `${name} is worth ${v}. ${who === 'you' ? 'You' : who} took ${res.contractorTricks} trick${res.contractorTricks === 1 ? '' : 's'}, so <b>−${v}</b>. Defenders score nothing in misère either way.`;
+}
+const def = res.defenderTricks;
+const defTxt = `The defenders take 10 a trick: ${def} × 10 = <b>+${def * 10}</b>.`;
+if (res.made) {
+const slam = res.contractorDelta > v ? ` All ten tricks scores at least 250, so <b>+250</b> instead.` : ` so <b>+${v}</b> to ${side}.`;
+return `${bidHtml(c)} is worth ${v}. Made with ${total} of ${c.level},${slam} ${defTxt}`;
+}
+return `${bidHtml(c)} is worth ${v}. ${total} of ${c.level} — down ${c.level - total}, so <b>−${v}</b> to ${side}. ${defTxt}`;
 }
 async function countUp(el, target, fmt) {
 for (let v = 0; v <= target; v++) {
@@ -5215,7 +6103,14 @@ const results = [];
 for (const rec of records) {
 if (gen !== G.reviewGen) return;
 try {
-const r = await Bot.decide('review', rec, { budgetMs: budgets().review, seed: 71717 });
+const r = await Bot.decide('review', rec,
+{ budgetMs: budgets().review, seed: 71717,
+maxWorlds: budgets().playWorlds,
+endgameThreshold: budgets().endgameThreshold,
+rolloutFollowDepth: budgets().followDepth,
+rolloutFollowAtRootCards: budgets().followAtRootCards,
+redeterminizeRollouts: budgets().redeterminize,
+redeterminizeMix: budgets().redeterminizeMix });
 if (r) results.push({ rec, r });
 } catch (e) {   }
 }
@@ -5437,11 +6332,12 @@ ${optRow('Motion', 'motion', [{ v: 'auto', l: 'Auto' }, { v: 'reduced', l: 'Redu
 <span>Your contracts</span><b>${st.humanContractsMade || 0}/${st.humanContracts || 0}</b>
 <span>Best suit</span><b>${bestSuitLabel(st)}</b>
 <span>Last match</span><b>${lastMatchLabel()}</b>
+<span>Table</span><b>${MODES[G.match ? G.mode : settings.playMode].label}</b>
 <span>AI engine</span><b>${Bot.mode === 'worker' ? 'background thread' : 'main thread'}</b>
 </div>
 <div class="panel-actions">
 <button class="ghost" id="btnRules">Rules</button>
-<button class="ghost" id="btnAbandon">New match</button>
+<button class="ghost" id="btnAbandon">${practice() ? 'Leave practice' : 'New match'}</button>
 <button class="cta" id="btnCloseSettings">Done</button>
 </div>
 ${G.match ? `<div class="seed-note">match seed ${G.match.seed >>> 0}</div>` : ''}`;
@@ -5466,6 +6362,11 @@ o.setAttribute('aria-pressed', String(o === b));
 panel.querySelector('#btnCloseSettings').addEventListener('click', closeOverlay);
 panel.querySelector('#btnRules').addEventListener('click', showRules);
 panel.querySelector('#btnAbandon').addEventListener('click', () => {
+if (practice()) {
+closeOverlay();
+location.reload();
+return;
+}
 if (confirm('Abandon this match and start a new one?')) {
 Persist.set('liveMatch', null);
 closeOverlay();
@@ -5518,6 +6419,11 @@ Make the contract with your combined partnership tricks to add its value; fail a
 subtracted. Defenders always score 10 per trick. Winning all ten tricks scores at least 250.
 First side to <b>500 wins</b>; falling to <b>−500 loses</b>. Thresholds are checked only after a
 hand is fully scored.
+<h3>Bid practice</h3>
+A drill for the auction alone. You must hold the <b>winning bid</b> to play the hand — if a
+bot takes the contract, or everyone passes, the deal is thrown in and a new one dealt. No
+score is kept between hands; instead every bid on the table is shown with what it would
+score, and the full ladder of contract values sits on the felt through the auction.
 <h3>The coach</h3>
 After each hand, the same search engine that powers the bots reviews your decisions and flags
 up to three that cost the most win probability. The bots never see hidden cards — they reason
@@ -5561,6 +6467,7 @@ document.head.appendChild(link);
 } catch (e) {   }
 }
 function saveLiveMatch() {
+if (practice()) return;
 if (!G.match || G.match.finished) { Persist.set('liveMatch', null); return; }
 Persist.set('liveMatch', {
 seed: G.match.seed, handNo: G.match.handNo, dealer: G.match.dealer,
@@ -5588,6 +6495,7 @@ G.match.dealer = lm.dealer;
 G.match.scores = lm.scores.slice();
 if (Number.isInteger(lm.decisionCounter)) G.match.decisionCounter = lm.decisionCounter;
 G.hand = null;
+G.mode = 'match';
 renderScores();
 renderContractChip();
 $('splash').style.display = 'none';
@@ -5599,11 +6507,12 @@ Sound.ensure();
 showSettings();
 });
 composerInit();
+bidValuesInit();
 jokerCallInit();
 window.addEventListener('error', e => { console.error('500elite:', e.error || e.message); });
 window.__E500 = { Core, AI: AIm, Engine, G, settings, Bot, startMatch, openJokerCall, showWhy, setOff,
 NAME_POOL, setPlayerName, get playerName() { return playerName; }, get bots() { return bots; },
-composerRefresh, resetComposer };
+composerRefresh, resetComposer, MODES, get practice() { return practice(); } };
 function refreshTable() {
 assignBots(Math.abs((+Persist.get('matchIndex', 0) | 0)) || 0);
 renderNames();
@@ -5639,16 +6548,42 @@ row.appendChild(b);
 paint();
 refreshTable();
 }
+function modePickInit() {
+const row = $('mpRow'), note = $('mpNote');
+const paint = () => {
+for (const b of row.children) b.setAttribute('aria-checked', String(b.dataset.mode === settings.playMode));
+note.textContent = MODES[settings.playMode].note;
+};
+for (const key of Object.keys(MODES)) {
+const b = document.createElement('button');
+b.type = 'button';
+b.className = 'mp-mode';
+b.dataset.mode = key;
+b.textContent = MODES[key].label;
+b.setAttribute('role', 'radio');
+b.setAttribute('aria-checked', 'false');
+b.addEventListener('click', () => {
+Sound.ensure();
+settings.playMode = key;
+Persist.set('playMode', key);
+paint();
+say(`${MODES[key].label}. ${MODES[key].note}.`);
+});
+row.appendChild(b);
+}
+paint();
+}
 (async function boot() {
 setPhaseClass('idle');
 status('');
 injectManifest();
 if (settings.autopilot && !playerName) setPlayerName(NAME_POOL[0]);
 namePickInit();
+modePickInit();
 const btn = $('btnDeal');
 btn.addEventListener('click', () => {
 Sound.ensure();
-Persist.set('liveMatch', null);
+if (settings.playMode !== 'practice') Persist.set('liveMatch', null);
 startMatch(((Math.random() * 2 ** 31) | 0)).catch(err => {
 console.error(err);
 status('Something went wrong — tap menu → New match.');
