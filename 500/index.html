@@ -2789,16 +2789,23 @@ slots.map(() => 0), T, rng);
 }
 return worldFromAssignment(ctx, assigned);
 }
-function posteriorResampleWorlds(ctx, rng, count, multiplier) {
+function posteriorResampleWorlds(ctx, rng, count, multiplier, essGate) {
 const proposalCount = Math.max(count, Math.ceil(count * multiplier));
 const pool = new Array(proposalCount);
-let total = 0;
+let total = 0, sum2 = 0;
 for (let i = 0; i < proposalCount; i++) {
 const w = sampleWorld(ctx, rng);
 pool[i] = w;
 total += w.weight;
+sum2 += w.weight * w.weight;
 }
 if (!(total > 0) || !Number.isFinite(total)) return pool.slice(0, count);
+const essRatio = total * total / (proposalCount * sum2);
+if (essGate > 0 && essRatio >= essGate) {
+const unchanged = pool.slice(0, count);
+unchanged.posteriorEss = essRatio; unchanged.posteriorResampled = false;
+return unchanged;
+}
 const multiplicity = new Int32Array(proposalCount);
 const step = total / count;
 let mark = rng.next() * step, cumulative = pool[0].weight, at = 0;
@@ -2812,7 +2819,9 @@ const out = [];
 for (let i = 0; i < proposalCount; i++) {
 if (multiplicity[i]) out.push({ ...pool[i], weight: multiplicity[i] });
 }
-return rng.shuffle(out);
+rng.shuffle(out);
+out.posteriorEss = essRatio; out.posteriorResampled = true;
+return out;
 }
 function copyTrickEntry(p) {
 return p.nom != null ? { seat: p.seat, card: p.card, nom: p.nom } : { seat: p.seat, card: p.card };
@@ -3794,10 +3803,15 @@ const redeterminizeMix = opts.redeterminizeMix == null
 ? (redeterminizeRollouts ? 1 : 0) : clamp(opts.redeterminizeMix, 0, 1);
 const exactBeliefWorlds = endgame
 ? enumerateWorlds(ctx, opts.maxExactBeliefWorlds || 2200) : null;
-const posteriorOversample = opts.posteriorOversample == null ? 4 : opts.posteriorOversample;
-const resampledBeliefWorlds = !exactBeliefWorlds && !ctx.misereContract && endgame &&
+const posteriorOversample = opts.posteriorOversample == null
+? (ctx.misereContract ? 2 : 4) : opts.posteriorOversample;
+const resampleContract = !ctx.misereContract || opts.posteriorResampleMisere !== false;
+const posteriorEssGate = opts.posteriorResampleEssGate == null
+? (ctx.misereContract ? 0.60 : 0) : opts.posteriorResampleEssGate;
+const resampledBeliefWorlds = !exactBeliefWorlds && resampleContract && endgame &&
 posteriorOversample > 1
-? posteriorResampleWorlds(ctx, rng, maxWorlds, posteriorOversample) : null;
+? posteriorResampleWorlds(ctx, rng, maxWorlds, posteriorOversample,
+posteriorEssGate) : null;
 let worldsDone = 0;
 let solvedWorlds = 0, solveAborts = 0;
 const nodeBudget = { nodes: opts.maxNodes || 1200000, maskKey: opts.maskSolveKey !== false };
@@ -3875,6 +3889,8 @@ table.sort((a, b) => b.ev - a.ev);
 const out = {
 card: moveCard(bestC), worlds: worldsDone, endgame,
 exactBelief: !!exactBeliefWorlds, solvedWorlds, solveAborts,
+posteriorEss: resampledBeliefWorlds ? resampledBeliefWorlds.posteriorEss : null,
+posteriorResampled: !!(resampledBeliefWorlds && resampledBeliefWorlds.posteriorResampled),
 nodesUsed: (opts.maxNodes || 1200000) - nodeBudget.nodes,
 table, classes
 };
