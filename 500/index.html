@@ -2789,7 +2789,7 @@ slots.map(() => 0), T, rng);
 }
 return worldFromAssignment(ctx, assigned);
 }
-function posteriorResampleWorlds(ctx, rng, count, multiplier, essGate) {
+function posteriorResampleWorlds(ctx, rng, count, multiplier, essGate, coalesce) {
 const proposalCount = Math.max(count, Math.ceil(count * multiplier));
 const pool = new Array(proposalCount);
 let total = 0, sum2 = 0;
@@ -2817,7 +2817,9 @@ multiplicity[at]++;
 }
 const out = [];
 for (let i = 0; i < proposalCount; i++) {
-if (multiplicity[i]) out.push({ ...pool[i], weight: multiplicity[i] });
+if (!multiplicity[i]) continue;
+if (coalesce !== false) out.push({ ...pool[i], weight: multiplicity[i] });
+else for (let n = 0; n < multiplicity[i]; n++) out.push({ ...pool[i], weight: 1 });
 }
 rng.shuffle(out);
 out.posteriorEss = essRatio; out.posteriorResampled = true;
@@ -4291,23 +4293,51 @@ pool.push(byKeep.get(key)); seen.add(key);
 }
 }
 }
-const screenWorlds = [];
-for (let i = 0; i < (opts.screenWorlds || 12); i++) screenWorlds.push(sampleWorld(ctx, rng));
+const requestedDiscardOversample = opts.discardPosteriorOversample || 1;
+const discardPosteriorOversample = isMis && opts.discardPosteriorResampleMisere !== true
+? 1 : requestedDiscardOversample;
+const discardPosteriorScreenOversample = opts.discardPosteriorScreenOversample == null
+? discardPosteriorOversample : opts.discardPosteriorScreenOversample;
+const discardPosteriorDeepOversample = opts.discardPosteriorDeepOversample == null
+? discardPosteriorOversample : opts.discardPosteriorDeepOversample;
+const discardPosteriorEssGate = opts.discardPosteriorEssGate || 0;
+function stageWorlds(count, oversample) {
+if (oversample > 1) {
+return posteriorResampleWorlds(ctx, rng, count, oversample,
+discardPosteriorEssGate, false);
+}
+const worlds = [];
+for (let i = 0; i < count; i++) worlds.push(sampleWorld(ctx, rng));
+return worlds;
+}
+const screenWorlds = stageWorlds(opts.screenWorlds || 12,
+discardPosteriorScreenOversample);
 let evaluated = runStage(pool, screenWorlds);
 evaluated.sort((a, b) => b.ev - a.ev);
 const survivors = evaluated.slice(0, Math.min(opts.survivors || 16, evaluated.length));
-const deepWorlds = [];
 const maxW = opts.maxWorlds || 40;
+let deepWorlds;
+if (discardPosteriorDeepOversample > 1) {
+const deepCount = now() < deadline - 60 ? maxW : Math.min(4, maxW);
+deepWorlds = stageWorlds(deepCount, discardPosteriorDeepOversample);
+} else {
+deepWorlds = [];
 const minDeep = Math.min(4, maxW);
-while (deepWorlds.length < minDeep || (deepWorlds.length < maxW && now() < deadline - 60)) {
+while (deepWorlds.length < minDeep ||
+(deepWorlds.length < maxW && now() < deadline - 60)) {
 deepWorlds.push(sampleWorld(ctx, rng));
 if (deepWorlds.length >= maxW) break;
+}
 }
 let finalTable = runStage(survivors, deepWorlds);
 finalTable.sort((a, b) => b.ev - a.ev);
 const bestF = finalTable[0];
 return {
 discard: bestF.disc, keep: bestF.keep, worlds: deepWorlds.length,
+screenPosteriorEss: screenWorlds.posteriorEss == null ? null : screenWorlds.posteriorEss,
+deepPosteriorEss: deepWorlds.posteriorEss == null ? null : deepWorlds.posteriorEss,
+screenPosteriorResampled: !!screenWorlds.posteriorResampled,
+deepPosteriorResampled: !!deepWorlds.posteriorResampled,
 table: finalTable.slice(0, 8).map(f => ({ discard: f.disc, ev: f.ev, makeRate: f.makeRate, static: f.s }))
 };
 }
@@ -4482,8 +4512,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -5813,6 +5843,7 @@ seed: Engine.decisionSeed(G.match, G.hand),
 budgetMs: budgets().discard,
 topK: budgets().topK,
 maxWorlds: budgets().discardWorlds,
+discardPosteriorOversample: budgets().discardPosteriorOversample,
 profile: bots[seat]
 };
 plateThinking(seat, true);
@@ -6073,7 +6104,9 @@ handHint.appendChild(b);
 async function requestDiscardHint() {
 try {
 const dec = await Bot.decide('discard', Engine.botPayload(G.match, G.hand, 0),
-{ seed: 424243, budgetMs: budgets().discard, topK: budgets().topK, maxWorlds: budgets().discardWorlds });
+{ seed: 424243, budgetMs: budgets().discard, topK: budgets().topK,
+maxWorlds: budgets().discardWorlds,
+discardPosteriorOversample: budgets().discardPosteriorOversample });
 if (G.hand.phase === 'discarding') {
 handHint.textContent = 'Coach would bury: ' + dec.discard.map(c => Core.cardShort(c)).join(' ');
 }
@@ -6274,7 +6307,8 @@ endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 redeterminizeRollouts: budgets().redeterminize,
-redeterminizeMix: budgets().redeterminizeMix });
+redeterminizeMix: budgets().redeterminizeMix,
+discardPosteriorOversample: budgets().discardPosteriorOversample });
 if (r) results.push({ rec, r });
 } catch (e) {   }
 }
