@@ -3653,7 +3653,23 @@ const key = solveKey(sim, budget.maskKey);
 const hit = tt.get(key);
 if (hit !== undefined) return hit;
 const moves = worldMoves(sim, seat);
-if (!maximizing && moves.length > 1) moves.reverse();
+if (moves.length > 1 && budget.misereTacticalOrder) {
+let preferred;
+if (sim.trick.length) preferred = policyFollowMisere(sim, seat, moves);
+else {
+const raw = [], seen = new Set();
+for (const m of moves) {
+const c = moveCard(m);
+if (!seen.has(c)) { seen.add(c); raw.push(c); }
+}
+preferred = policyLeadMisere(sim, seat, raw, Core.rngFromSeed(0x51e2e), 0);
+if (preferred === JOKER && sim.trump === Core.NOTRUMP) {
+preferred = NOM_BASE + policyNomination(sim, seat);
+}
+}
+const at = moves.indexOf(preferred);
+if (at > 0) { moves.splice(at, 1); moves.unshift(preferred); }
+} else if (!maximizing && moves.length > 1) moves.reverse();
 let val = maximizing ? 0 : 1;
 for (const m of moves) {
 const u = simPlayU(sim, seat, m);
@@ -3851,7 +3867,8 @@ let solvedWorlds = 0, solveAborts = 0;
 const nodeBudget = {
 nodes: opts.maxNodes || 1200000,
 maskKey: opts.maskSolveKey !== false,
-tacticalOrder: opts.tacticalSolveOrder !== false
+tacticalOrder: opts.tacticalSolveOrder !== false,
+misereTacticalOrder: opts.misereTacticalSolveOrder !== false
 };
 while (exactBeliefWorlds
 ? worldsDone < exactBeliefWorlds.length
