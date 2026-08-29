@@ -3581,6 +3581,23 @@ const u = matchWinProb(us, them, ctx.target, ctx.floor, ctx.valueModel);
 if (ctx.contract.strain >= Core.MISERE) return u;
 return clamp(u + 0.004 * tricksSide[ctx.mySide], 0.001, 0.999);
 }
+function purePlayUtility(ctx, tricksSide) {
+const ct = tricksSide[ctx.contractorSide];
+const sc = Core.scoreHand(ctx.contract, ct, { slamRule: ctx.slamRule });
+const deltas = [0, 0];
+deltas[ctx.contractorSide] += sc.contractorDelta;
+deltas[1 - ctx.contractorSide] += sc.defenderDelta;
+const us = ctx.scores[ctx.mySide] + deltas[ctx.mySide];
+const them = ctx.scores[1 - ctx.mySide] + deltas[1 - ctx.mySide];
+if (us <= ctx.floor || them <= ctx.floor) {
+if (us <= ctx.floor && them <= ctx.floor) return us > them ? 1 : us < them ? 0 : 0.5;
+return us <= ctx.floor ? 0 : 1;
+}
+if (sc.made && ctx.scores[ctx.contractorSide] + deltas[ctx.contractorSide] >= ctx.target) {
+return ctx.contractorSide === ctx.mySide ? 1 : 0;
+}
+return matchWinProb(us, them, ctx.target, ctx.floor, ctx.valueModel);
+}
 function equivClasses(legal, ctx) {
 if (legal.length <= 1) return legal.map(c => [c]);
 const { T, played, inHand } = ctx;
@@ -3647,6 +3664,8 @@ const budgetMs = opts.budgetMs || 500;
 const deadline = now() + budgetMs;
 const ctx = buildPlayContext(payload);
 ctx.valueModel = opts.valueModel;
+ctx.playUtility = opts.trickTiebreakScale === 0.004
+? handUtility : purePlayUtility;
 const legal = Core.legalPlays(payload.hand, payload.trick || [], ctx.trump,
 { misere: ctx.misereContract });
 const ntJokerLead = ctx.trump === 4 && !(payload.trick || []).length && legal.includes(JOKER);
@@ -3679,7 +3698,7 @@ const s2 = simClone(sim0);
 simPlay(s2, payload.seat, c);
 playOut(s2, Core.rngFromSeed(rollBase + i * 7919), 0.4);
 const a = quick.get(c);
-a.u += handUtility(ctx, s2.tricksSide) * w.weight;
+a.u += ctx.playUtility(ctx, s2.tricksSide) * w.weight;
 a.w += w.weight;
 }
 }
@@ -3784,7 +3803,7 @@ if (moveNom(bestC) != null) out.jokerSuit = moveNom(bestC);
 return out;
 }
 function recordOutcome(a, ctx, tricksSide, weight, st) {
-const u = handUtility(ctx, tricksSide);
+const u = ctx.playUtility(ctx, tricksSide);
 a.u += u * weight;
 a.w += weight;
 a.n++;
