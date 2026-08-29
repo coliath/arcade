@@ -2772,6 +2772,10 @@ discardFit = discardEvidenceLikelihood(kept, kitty, ctx.payload.contract.strain)
 weight *= discardFit;
 }
 for (let s = 0; s < 4; s++) if (!hands[s]) hands[s] = [];
+if (ctx.playInferenceStrength > 0) {
+weight *= playHistoryLikelihood(ctx, hands, kitty,
+ctx.playInferenceStrength, ctx.playInferenceActions);
+}
 return { hands, kitty, deadFolded, weight, discardFit };
 }
 function enumerateWorlds(ctx, limit) {
@@ -3152,6 +3156,61 @@ return sim.trick.length === 0
 }
 if (sim.trick.length === 0) return policyLead(sim, seat, legal, rng, temp);
 return policyFollow(sim, seat, legal, rng, temp, forceScale);
+}
+function playHistoryLikelihood(ctx, currentHands, kitty, strength, maxActions) {
+const p = ctx.payload;
+if (!p || p.phase !== 'play' || ctx.misereContract || !p.contract ||
+!(strength > 0)) return 1;
+const history = [];
+for (const t of (p.tricks || [])) for (const x of t.cards) history.push(x);
+for (const x of (p.trick || [])) history.push(x);
+if (!history.length) return 1;
+const hands = currentHands.map(h => h.slice());
+for (const x of history) hands[x.seat].push(x.card);
+if (hands.some(h => h.length !== 10)) return 1;
+const sim = makeSim(ctx.T, ctx.trump, hands, p.contract.seat,
+p.contract.seat & 1, [0, 0], [], {
+contractorSeat: p.contract.seat,
+buried: (p.buried || kitty || [])
+});
+const observer = p.seat;
+const cap = maxActions == null ? 8 : Math.max(1, maxActions | 0);
+let remainingEvidence = 0;
+for (const x of history) if (x.seat !== observer) remainingEvidence++;
+remainingEvidence = Math.min(cap, remainingEvidence);
+let skipEvidence = Math.max(0,
+history.reduce((n, x) => n + (x.seat !== observer ? 1 : 0), 0) - remainingEvidence);
+let surprise = 0;
+for (let i = 0; i < history.length; i++) {
+const x = history[i];
+if (sim.turn !== x.seat) return 1;
+const legal = simLegal(sim, x.seat);
+if (!legal.includes(x.card)) return 1;
+const observed = x.card === JOKER && sim.trump === 4 && !sim.trick.length
+? NOM_BASE + (x.nom == null ? 0 : x.nom) : x.card;
+if (x.seat !== observer) {
+if (skipEvidence > 0) skipEvidence--;
+else if (legal.length > 1 || (x.card === JOKER && sim.trump === 4 && !sim.trick.length)) {
+const predicted = policyMove(sim, x.seat,
+Core.rngFromSeed((0x50b1c7 + i * 7919 + x.seat * 101) >>> 0), 0);
+if (predicted !== observed) {
+surprise += policyEquivalentMove(sim, predicted, observed) ? 0.35 : 1;
+}
+}
+}
+try { simPlay(sim, x.seat, observed); }
+catch (_) { return 1; }
+}
+return 0.12 + 0.88 * Math.exp(-strength * surprise);
+}
+function policyEquivalentMove(sim, predicted, observed) {
+const pc = moveCard(predicted), oc = moveCard(observed);
+if (pc === JOKER || oc === JOKER) return predicted === observed;
+if (!sim.trick.length) return sim.T.eff[pc] === sim.T.eff[oc];
+if (sim.T.eff[pc] !== sim.T.eff[oc]) return false;
+const best = trickBest(sim);
+return (tpow(sim, pc, best.led) > best.power) ===
+(tpow(sim, oc, best.led) > best.power);
 }
 function policyFollow(sim, seat, legal, rng, temp, forceScale) {
 const best = trickBest(sim);
@@ -3796,6 +3855,10 @@ const budgetMs = opts.budgetMs || 500;
 const deadline = now() + budgetMs;
 const ctx = buildPlayContext(payload);
 ctx.valueModel = opts.valueModel;
+ctx.playInferenceStrength = opts.playInferenceStrength == null
+? 0.55 : Math.max(0, opts.playInferenceStrength);
+ctx.playInferenceActions = opts.playInferenceActions == null
+? 8 : opts.playInferenceActions;
 ctx.playUtility = opts.trickTiebreakScale === 0.004
 ? handUtility : purePlayUtility;
 const legal = Core.legalPlays(payload.hand, payload.trick || [], ctx.trump,
@@ -4516,6 +4579,7 @@ buildBeliefContext, uniformConstrainedAssignment, enumerateConstrainedAssignment
 enumerateWorlds, sampleWorld, posteriorResampleWorlds, worldSim,
 makeSim, simClone, redeterminizeSim, simLegal, simPlay, simDone,
 policyMove, policyFollow, policyFollowTwo, policyLeadTwo, playOut, greedyResponse, policyNomination,
+playHistoryLikelihood,
 NOM_BASE, moveCard, moveNom,
 solveWorld, worldMoves,
 matchWinProb, handUtility, buildPlayContext,
