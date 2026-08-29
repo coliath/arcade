@@ -3550,6 +3550,33 @@ prevMine = mine;
 }
 return expandNomMoves(sim, out);
 }
+function solverPreferredFollow(sim, seat, moves) {
+const best = trickBest(sim);
+if (!best || moves.length < 2) return moves[0];
+const partnerWinning = (best.seat & 1) === (seat & 1);
+if (partnerWinning && !laterThreat(sim, seat, best.power, best.led)) {
+return lowestDiscard(sim, seat, moves);
+}
+let minWin = -1, minWinP = Infinity;
+for (const c of moves) {
+const p = tpow(sim, c, best.led);
+if (p > best.power && p < minWinP) { minWin = c; minWinP = p; }
+}
+if (minWin >= 0) {
+let c = minWin, p = minWinP;
+while (c >= 0) {
+if (sim.trick.length === 3 || !laterThreat(sim, seat, p, best.led)) return c;
+let next = -1, nextP = Infinity;
+for (const m of moves) {
+const q = tpow(sim, m, best.led);
+if (q > p && q < nextP) { next = m; nextP = q; }
+}
+c = next; p = nextP;
+}
+if (sim.trick.length >= 2) return minWin;
+}
+return lowestDiscard(sim, seat, moves);
+}
 function solveWorld(sim, budget, tt) {
 if (budget.maskKey) {
 const masks = buildHandMasks(sim.hands);
@@ -3583,6 +3610,11 @@ const pa = best ? tpow(sim, ca, best.led) : sim.T.pow[ca];
 const pb = best ? tpow(sim, cb, best.led) : sim.T.pow[cb];
 return pb - pa;
 });
+if (budget.tacticalOrder && sim.trick.length) {
+const preferred = solverPreferredFollow(sim, seat, moves);
+const at = moves.indexOf(preferred);
+if (at > 0) { moves.splice(at, 1); moves.unshift(preferred); }
+}
 }
 let val = maximizing ? -1 : 99;
 for (const m of moves) {
@@ -3816,7 +3848,11 @@ posteriorOversample > 1
 posteriorEssGate) : null;
 let worldsDone = 0;
 let solvedWorlds = 0, solveAborts = 0;
-const nodeBudget = { nodes: opts.maxNodes || 1200000, maskKey: opts.maskSolveKey !== false };
+const nodeBudget = {
+nodes: opts.maxNodes || 1200000,
+maskKey: opts.maskSolveKey !== false,
+tacticalOrder: opts.tacticalSolveOrder !== false
+};
 while (exactBeliefWorlds
 ? worldsDone < exactBeliefWorlds.length
 : worldsDone < (resampledBeliefWorlds ? resampledBeliefWorlds.length : maxWorlds) &&
