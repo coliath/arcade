@@ -2466,7 +2466,7 @@ Math.exp(-substitutions * substitutionWeight - regret / temperature);
 function discardEvidenceLikelihood(keep, buried, strain) {
 return discardEvidenceLikelihoodModel(keep, buried, strain);
 }
-function quickAuctionBid(hand, seat, highB, estOverride, legacy) {
+function quickAuctionBid(hand, seat, highB, estOverride, legacy, potentialModel) {
 const highRank = highB ? Core.bidRank(highB) : 0;
 const est = estOverride || [0, 1, 2, 3, 4].map(s => estimateTricks(hand, s));
 if (legacy) {
@@ -2489,9 +2489,21 @@ for (let s = 0; s <= 4; s++) {
 const b = legal.find(x => x.strain === s);
 if (!b) continue;
 if (partnerHolds && highB.strain === s) continue;
-const selfMargin = est[s] + KITTY_BOOST + PARTNER_BOOST - b.level;
+let featureWeight = potentialModel === 'score' || potentialModel === 'features' ? 1 : 0;
+if (typeof potentialModel === 'string' && potentialModel.startsWith('blend')) {
+featureWeight = clamp((parseInt(potentialModel.slice(5), 10) || 0) / 100, 0, 1);
+}
+const featurePotential = featureWeight
+? bidPotentialFeatures(hand, s) : null;
+const selfPotential = potentialModel === 'features'
+? featurePotential : est[s] + KITTY_BOOST + PARTNER_BOOST;
+const selfMargin = selfPotential - b.level;
 if (selfMargin < (partnerHolds ? 1.0 : 0.25)) continue;
-const q = (bidPotentialFromEstimate(est[s], s) - b.level) + b.value / 900;
+const scalarPotential = bidPotentialFromEstimate(est[s], s);
+const rankedPotential = featureWeight
+? scalarPotential * (1 - featureWeight) + featurePotential * featureWeight
+: scalarPotential;
+const q = (rankedPotential - b.level) + b.value / 900;
 if (q > bestQ || (q === bestQ && (!best || b.rank < best.rank))) {
 bestQ = q; best = b;
 }
@@ -3875,6 +3887,8 @@ const misIdx = [], stdIdx = [];
 candidates.forEach((c, i) => (c.strain >= Core.MISERE ? misIdx : stdIdx).push(i));
 const misExact = { nodes: opts.misereSolveNodes || 6000000 };
 const screenR = opts.screenRollouts || 0;
+const continuationPotentialModel = opts.continuationPotentialModel == null
+? 'blend25' : opts.continuationPotentialModel;
 const passedNow = [false, false, false, false];
 for (const a of (payload.auction || [])) if (!a.bid) passedNow[a.seat] = true;
 function worldEst(w, s) {
@@ -3888,7 +3902,7 @@ return w._est[s];
 }
 function heuristicBid(w, s, highB) {
 return quickAuctionBid(w.hands[s], s, highB, worldEst(w, s),
-opts.continuationPolicy === 'legacy');
+opts.continuationPolicy === 'legacy', continuationPotentialModel);
 }
 function auctionOutcome(w, myBid) {
 const passed = passedNow.slice();
