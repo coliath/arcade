@@ -2789,6 +2789,31 @@ slots.map(() => 0), T, rng);
 }
 return worldFromAssignment(ctx, assigned);
 }
+function posteriorResampleWorlds(ctx, rng, count, multiplier) {
+const proposalCount = Math.max(count, Math.ceil(count * multiplier));
+const pool = new Array(proposalCount);
+let total = 0;
+for (let i = 0; i < proposalCount; i++) {
+const w = sampleWorld(ctx, rng);
+pool[i] = w;
+total += w.weight;
+}
+if (!(total > 0) || !Number.isFinite(total)) return pool.slice(0, count);
+const multiplicity = new Int32Array(proposalCount);
+const step = total / count;
+let mark = rng.next() * step, cumulative = pool[0].weight, at = 0;
+for (let k = 0; k < count; k++, mark += step) {
+while (at + 1 < proposalCount && cumulative < mark) {
+cumulative += pool[++at].weight;
+}
+multiplicity[at]++;
+}
+const out = [];
+for (let i = 0; i < proposalCount; i++) {
+if (multiplicity[i]) out.push({ ...pool[i], weight: multiplicity[i] });
+}
+return rng.shuffle(out);
+}
 function copyTrickEntry(p) {
 return p.nom != null ? { seat: p.seat, card: p.card, nom: p.nom } : { seat: p.seat, card: p.card };
 }
@@ -3769,13 +3794,19 @@ const redeterminizeMix = opts.redeterminizeMix == null
 ? (redeterminizeRollouts ? 1 : 0) : clamp(opts.redeterminizeMix, 0, 1);
 const exactBeliefWorlds = endgame
 ? enumerateWorlds(ctx, opts.maxExactBeliefWorlds || 2200) : null;
+const posteriorOversample = opts.posteriorOversample == null ? 4 : opts.posteriorOversample;
+const resampledBeliefWorlds = !exactBeliefWorlds && !ctx.misereContract && endgame &&
+posteriorOversample > 1
+? posteriorResampleWorlds(ctx, rng, maxWorlds, posteriorOversample) : null;
 let worldsDone = 0;
 let solvedWorlds = 0, solveAborts = 0;
 const nodeBudget = { nodes: opts.maxNodes || 1200000, maskKey: opts.maskSolveKey !== false };
 while (exactBeliefWorlds
 ? worldsDone < exactBeliefWorlds.length
-: worldsDone < maxWorlds && (worldsDone < minWorlds || now() < deadline)) {
-const w = exactBeliefWorlds ? exactBeliefWorlds[worldsDone] : sampleWorld(ctx, rng);
+: worldsDone < (resampledBeliefWorlds ? resampledBeliefWorlds.length : maxWorlds) &&
+(worldsDone < minWorlds || now() < deadline)) {
+const w = exactBeliefWorlds ? exactBeliefWorlds[worldsDone]
+: resampledBeliefWorlds ? resampledBeliefWorlds[worldsDone] : sampleWorld(ctx, rng);
 const sim0 = worldSim(ctx, w);
 let solved = false;
 if (endgame && nodeBudget.nodes > 8000) {
@@ -4376,7 +4407,7 @@ staticKeepMisere, solveWorldMisere,
 auctionEvidence, handAuctionLikelihoodModel, handAuctionLikelihood,
 discardEvidenceLikelihood, discardEvidenceLikelihoodModel, quickAuctionBid,
 buildBeliefContext, uniformConstrainedAssignment, enumerateConstrainedAssignments,
-enumerateWorlds, sampleWorld, worldSim,
+enumerateWorlds, sampleWorld, posteriorResampleWorlds, worldSim,
 makeSim, simClone, redeterminizeSim, simLegal, simPlay, simDone,
 policyMove, policyFollow, policyFollowTwo, policyLeadTwo, playOut, greedyResponse, policyNomination,
 NOM_BASE, moveCard, moveNom,
