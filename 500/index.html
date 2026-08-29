@@ -2242,11 +2242,18 @@ return r + (counts[s] <= 2 ? 2.5 : 0) + (r >= 12 ? 2 : 0);
 };
 return hand15.slice().sort((a, b) => badness(a) - badness(b)).slice(0, 10);
 }
-function staticKeepMisere(hand15) {
+function misereKeepScore(keep, voidWeight) {
+const counts = [0, 0, 0, 0];
+for (const c of keep) if (c !== JOKER) counts[Core.suitOf(c)]++;
+let voids = 0;
+for (const n of counts) if (n === 0) voids++;
+return -misereDanger(keep) * 10 + voids * (voidWeight == null ? 2.5 : voidWeight);
+}
+function staticKeepMisere(hand15, voidWeight) {
 if (hand15.length <= 10) return hand15.slice();
 let best = null, bestV = -Infinity;
 for (const keep of combinations(hand15, 10)) {
-const v = evalKeepHandMisere(keep);
+const v = misereKeepScore(keep, voidWeight);
 if (v > bestV) { bestV = v; best = keep; }
 }
 return best || quickKeepMisere(hand15);
@@ -2406,8 +2413,9 @@ let y = beta[0];
 for (let i = 0; i < x.length; i++) y += beta[i + 1] * (x[i] - mean[i]) / scale[i];
 return clamp(y, 0, 10);
 }
-function handAuctionLikelihoodModel(hand, seatEvidence, scale, passOffset) {
+function handAuctionLikelihoodModel(hand, seatEvidence, scale, passOffset, passScale) {
 if (!seatEvidence || !seatEvidence.length) return 1;
+passScale = passScale == null ? scale : passScale;
 const est = [];
 for (let s = 0; s <= 4; s++) est.push(estimateTricks(hand, s));
 let w = 1;
@@ -2429,7 +2437,7 @@ const minLevel = bids[0].level;
 bestMargin = Math.max(bestMargin, est[s] - (minLevel - PARTNER_BOOST - KITTY_BOOST));
 }
 if (bestMargin > -90) {
-w *= 0.10 + 0.90 * (1 - sigmoid((bestMargin - passOffset) / scale));
+w *= 0.10 + 0.90 * (1 - sigmoid((bestMargin - passOffset) / passScale));
 }
 }
 }
@@ -2438,7 +2446,8 @@ return clamp(w, 0.03, 30);
 function handAuctionLikelihood(hand, seatEvidence) {
 return handAuctionLikelihoodModel(hand, seatEvidence, 0.9, 0.8);
 }
-function discardEvidenceLikelihood(keep, buried, strain) {
+function discardEvidenceLikelihoodModel(keep, buried, strain,
+substitutionWeight, temperature, floor) {
 if (!keep || keep.length !== 10 || !buried || buried.length !== 5) return 1;
 const hand15 = keep.concat(buried);
 const isMis = strain >= Core.MISERE;
@@ -2448,8 +2457,14 @@ const regret = Math.max(0, score(ideal) - score(keep));
 const kept = new Set(keep);
 let substitutions = 0;
 for (const c of ideal) if (!kept.has(c)) substitutions++;
-const temperature = isMis ? 5.0 : 6.5;
-return 0.10 + 0.90 * Math.exp(-substitutions * 0.85 - regret / temperature);
+substitutionWeight = substitutionWeight == null ? 0.85 : substitutionWeight;
+temperature = temperature == null ? (isMis ? 5.0 : 6.5) : temperature;
+floor = floor == null ? 0.10 : floor;
+return floor + (1 - floor) *
+Math.exp(-substitutions * substitutionWeight - regret / temperature);
+}
+function discardEvidenceLikelihood(keep, buried, strain) {
+return discardEvidenceLikelihoodModel(keep, buried, strain);
 }
 function quickAuctionBid(hand, seat, highB, estOverride, legacy) {
 const highRank = highB ? Core.bidRank(highB) : 0;
@@ -4009,13 +4024,17 @@ playOut(sim, rng, 0.4, leadDepth);
 return { ct: sim.tricksSide[declSeat & 1], tricksSide: sim.tricksSide };
 }
 function simulateDeclareMisere(declSeat, declHand, w, bid, rng, exactPool, keepModel) {
-const memoKey = '_misSolve' + declSeat + (keepModel === 'static' ? 's' : 'q');
+const staticModel = keepModel === 'static' || keepModel === 'static-7.5';
+const memoKey = '_misSolve' + declSeat +
+(keepModel === 'static-7.5' ? 's75' : staticModel ? 's25' : 'q');
 if (w[memoKey]) return w[memoKey];
 const T = Core.buildTables(4);
 const kitty = w.kitty || [];
 const hand15 = declHand.concat(kitty);
 const keep = hand15.length > 10
-? (keepModel === 'static' ? staticKeepMisere(hand15) : quickKeepMisere(hand15))
+? (staticModel
+? staticKeepMisere(hand15, keepModel === 'static-7.5' ? 7.5 : 2.5)
+: quickKeepMisere(hand15))
 : hand15.slice();
 const folded = (declSeat + 2) & 3;
 const hands = w.hands.map((h, s) =>
@@ -4096,8 +4115,9 @@ trump: playStrain, valueModel: opts.valueModel
 };
 const T = Core.buildTables(playStrain);
 const foldedSeat = isMis ? (payload.seat + 2) & 3 : -1;
-const rolloutLeadDepth = opts.rolloutLeadDepth || 0;
-const redeterminizeRollouts = opts.redeterminizeRollouts || 0;
+const rolloutLeadDepth = opts.rolloutLeadDepth == null ? 2 : opts.rolloutLeadDepth;
+const redeterminizeRollouts = opts.redeterminizeRollouts == null
+? 1 : opts.redeterminizeRollouts;
 function simKeep(finalist, w, wi) {
 const keep = finalist.keep;
 const hands = w.hands.map((h, s) =>
@@ -4270,9 +4290,10 @@ return {
 assertFairPayload, inferVoids, computeInsights,
 estimateTricks, bidPotentialFromEstimate, bidPotential, bidFeatureVector, bidPotentialFeatures,
 evalKeepHand, quickKeep, voidKeep, voidPatterns,
-misereDanger, evalKeepHandMisere, quickKeepMisere, staticKeepMisere, solveWorldMisere,
+misereDanger, evalKeepHandMisere, quickKeepMisere, misereKeepScore,
+staticKeepMisere, solveWorldMisere,
 auctionEvidence, handAuctionLikelihoodModel, handAuctionLikelihood,
-discardEvidenceLikelihood, quickAuctionBid,
+discardEvidenceLikelihood, discardEvidenceLikelihoodModel, quickAuctionBid,
 buildBeliefContext, uniformConstrainedAssignment, enumerateConstrainedAssignments,
 enumerateWorlds, sampleWorld, worldSim,
 makeSim, simClone, redeterminizeSim, simLegal, simPlay, simDone,
