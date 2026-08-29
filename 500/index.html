@@ -2242,6 +2242,15 @@ return r + (counts[s] <= 2 ? 2.5 : 0) + (r >= 12 ? 2 : 0);
 };
 return hand15.slice().sort((a, b) => badness(a) - badness(b)).slice(0, 10);
 }
+function staticKeepMisere(hand15) {
+if (hand15.length <= 10) return hand15.slice();
+let best = null, bestV = -Infinity;
+for (const keep of combinations(hand15, 10)) {
+const v = evalKeepHandMisere(keep);
+if (v > bestV) { bestV = v; best = keep; }
+}
+return best || quickKeepMisere(hand15);
+}
 function quickKeep(hand15, strain) {
 const T = Core.buildTables(strain);
 const counts = [0, 0, 0, 0, 0];
@@ -3892,8 +3901,10 @@ const declSeat = finalB.seat;
 const declHand = declSeat === payload.seat ? payload.hand : w.hands[declSeat];
 const bid = { level: finalB.level, strain: finalB.strain };
 const exactMis = declSeat === payload.seat ? misExact : null;
+const rootMisereKeep = opts.misereKeepModel === 'quick' ? null : 'static';
 const outcome = simulateDeclare(declSeat, declHand, w, bid, rollRng, exactMis, screenR,
-opts.rolloutLeadDepth || 0);
+opts.rolloutLeadDepth || 0,
+declSeat === payload.seat ? rootMisereKeep : null);
 const declSide = declSeat & 1;
 const sc = Core.scoreHand(bid, outcome.ct, { slamRule: payload.slamRule });
 const deltas = [0, 0];
@@ -3978,8 +3989,10 @@ return { action: 'pass', passEv, table, worlds: worldsUsed };
 }
 return { action: 'bid', bid: { level: best.bid.level, strain: best.bid.strain }, ev: best.adjEv, passEv, makeRate: best.makeRate, table, worlds: worldsUsed };
 }
-function simulateDeclare(declSeat, declHand, w, bid, rng, misExact, screenR, leadDepth) {
-if (bid.strain >= Core.MISERE) return simulateDeclareMisere(declSeat, declHand, w, bid, rng, misExact);
+function simulateDeclare(declSeat, declHand, w, bid, rng, misExact, screenR, leadDepth, misKeepModel) {
+if (bid.strain >= Core.MISERE) {
+return simulateDeclareMisere(declSeat, declHand, w, bid, rng, misExact, misKeepModel);
+}
 const T = Core.buildTables(bid.strain);
 const kitty = w.kitty || [];
 const hand15 = declHand.concat(kitty);
@@ -3995,13 +4008,15 @@ const sim = makeSim(T, bid.strain, hands, declSeat, declSeat & 1, [0, 0], [],
 playOut(sim, rng, 0.4, leadDepth);
 return { ct: sim.tricksSide[declSeat & 1], tricksSide: sim.tricksSide };
 }
-function simulateDeclareMisere(declSeat, declHand, w, bid, rng, exactPool) {
-const memoKey = '_misSolve' + declSeat;
+function simulateDeclareMisere(declSeat, declHand, w, bid, rng, exactPool, keepModel) {
+const memoKey = '_misSolve' + declSeat + (keepModel === 'static' ? 's' : 'q');
 if (w[memoKey]) return w[memoKey];
 const T = Core.buildTables(4);
 const kitty = w.kitty || [];
 const hand15 = declHand.concat(kitty);
-const keep = hand15.length > 10 ? quickKeepMisere(hand15) : hand15.slice();
+const keep = hand15.length > 10
+? (keepModel === 'static' ? staticKeepMisere(hand15) : quickKeepMisere(hand15))
+: hand15.slice();
 const folded = (declSeat + 2) & 3;
 const hands = w.hands.map((h, s) =>
 s === declSeat ? keep : s === folded ? [] : (h ? h.slice() : []));
@@ -4255,7 +4270,7 @@ return {
 assertFairPayload, inferVoids, computeInsights,
 estimateTricks, bidPotentialFromEstimate, bidPotential, bidFeatureVector, bidPotentialFeatures,
 evalKeepHand, quickKeep, voidKeep, voidPatterns,
-misereDanger, evalKeepHandMisere, quickKeepMisere, solveWorldMisere,
+misereDanger, evalKeepHandMisere, quickKeepMisere, staticKeepMisere, solveWorldMisere,
 auctionEvidence, handAuctionLikelihoodModel, handAuctionLikelihood,
 discardEvidenceLikelihood, quickAuctionBid,
 buildBeliefContext, uniformConstrainedAssignment, enumerateConstrainedAssignments,
