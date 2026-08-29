@@ -4054,7 +4054,10 @@ const accs = candidates.map(() => ({ u: 0, w: 0, n: 0, makes: 0 }));
 const passAcc = { u: 0, w: 0, n: 0 };
 const misIdx = [], stdIdx = [];
 candidates.forEach((c, i) => (c.strain >= Core.MISERE ? misIdx : stdIdx).push(i));
-const misExact = { nodes: opts.misereSolveNodes || 6000000 };
+const misExact = {
+nodes: opts.misereSolveNodes || 6000000,
+misereTacticalOrder: opts.misereTacticalSolveOrder !== false
+};
 const screenR = opts.screenRollouts || 0;
 const continuationPotentialModel = opts.continuationPotentialModel == null
 ? 'blend25' : opts.continuationPotentialModel;
@@ -4225,7 +4228,11 @@ s === declSeat ? keep : s === folded ? [] : (h ? h.slice() : []));
 const sim = makeSim(T, 4, hands, declSeat, declSeat & 1, [0, 0], [],
 { folded, misere: true, contractorSeat: declSeat });
 if (exactPool && exactPool.nodes > 20000) {
-const slice = { nodes: Math.min(exactPool.nodes, 250000), maskKey: true };
+const slice = {
+nodes: Math.min(exactPool.nodes, 250000),
+maskKey: true,
+misereTacticalOrder: exactPool.misereTacticalOrder
+};
 const before = slice.nodes;
 try {
 const v = solveWorldMisere(simClone(sim), slice, new Map());
