@@ -2798,6 +2798,24 @@ for (let s = 0; s < 4; s++) for (const c of hands[s]) owner[c] = s;
 if (trick) for (const p of trick) owner[p.card] = 4;
 return owner;
 }
+function buildHandMasks(hands) {
+const lo = new Int32Array(4), hi = new Int32Array(4);
+for (let s = 0; s < 4; s++) for (const c of hands[s]) {
+if (c < 32) lo[s] |= 1 << c;
+else hi[s] |= 1 << (c - 32);
+}
+return { lo, hi };
+}
+function maskRemove(sim, seat, card) {
+if (!sim.handLo) return;
+if (card < 32) sim.handLo[seat] &= ~(1 << card);
+else sim.handHi[seat] &= ~(1 << (card - 32));
+}
+function maskRestore(sim, seat, card) {
+if (!sim.handLo) return;
+if (card < 32) sim.handLo[seat] |= 1 << card;
+else sim.handHi[seat] |= 1 << (card - 32);
+}
 function makeSim(T, trump, hands, leader, contractorSide, tricksSide, trick, opts) {
 const h = hands.map(x => x.slice());
 const folded = opts && opts.folded != null ? opts.folded : -1;
@@ -2805,6 +2823,7 @@ const sim = {
 T, trump,
 hands: h,
 owner: buildOwner(h, trick),
+handLo: null, handHi: null,
 leader,
 trick: trick ? trick.map(copyTrickEntry) : [],
 tricksSide: tricksSide ? tricksSide.slice() : [0, 0],
@@ -2828,6 +2847,7 @@ return {
 T: sim.T, trump: sim.trump,
 hands: [sim.hands[0].slice(), sim.hands[1].slice(), sim.hands[2].slice(), sim.hands[3].slice()],
 owner: sim.owner.slice(),
+handLo: null, handHi: null,
 leader: sim.leader,
 trick: sim.trick.map(copyTrickEntry),
 tricksSide: sim.tricksSide.slice(),
@@ -2923,6 +2943,7 @@ const i = h.indexOf(card);
 const u = UNDO_POOL.length ? UNDO_POOL.pop() : { seat: 0, card: 0, idx: 0, completed: false, trickRef: null, prevLeader: 0 };
 u.seat = seat; u.card = card; u.idx = i; u.completed = false; u.trickRef = null;
 h.splice(i, 1);
+maskRemove(sim, seat, card);
 sim.owner[card] = 4;
 const ntJokerLead = sim.trick.length === 0 && card === JOKER && sim.trump === 4;
 sim.trick.push(ntJokerLead ? { seat, card, nom } : { seat, card });
@@ -2957,6 +2978,7 @@ t.pop();
 sim.trick.pop();
 }
 sim.owner[u.card] = u.seat;
+maskRestore(sim, u.seat, u.card);
 sim.hands[u.seat].splice(u.idx, 0, u.card);
 sim.turn = u.seat;
 u.trickRef = null;
@@ -3430,7 +3452,25 @@ if (w >= 0 && sim.misere && w === sim.contractorSeat) break;
 return sim.tricksSide;
 }
 const KEY_BUF = new Array(50).fill(0);
-function solveKey(sim) {
+const MASK_KEY_BUF = new Array(17).fill(0);
+function solveKey(sim, maskKey) {
+if (maskKey) {
+const buf = MASK_KEY_BUF;
+let at = 0;
+for (let s = 0; s < 4; s++) {
+const lo = sim.handLo[s];
+buf[at++] = lo & 0xffff;
+buf[at++] = (lo >>> 16) & 0xffff;
+buf[at++] = sim.handHi[s] & 0x1fff;
+}
+buf[at++] = sim.turn;
+const t = sim.trick;
+buf[at++] = t.length > 0 ? t[0].card + 1 : 0;
+buf[at++] = t.length > 1 ? t[1].card + 1 : 0;
+buf[at++] = t.length > 2 ? t[2].card + 1 : 0;
+buf[at] = t.length > 0 && t[0].nom != null ? t[0].nom + 1 : 0;
+return String.fromCharCode.apply(null, buf);
+}
 const owner = sim.owner, buf = KEY_BUF;
 for (let c = 0; c < 45; c++) buf[c] = owner[c] + 2;
 buf[45] = sim.turn;
@@ -3475,6 +3515,10 @@ prevMine = mine;
 return expandNomMoves(sim, out);
 }
 function solveWorld(sim, budget, tt) {
+if (budget.maskKey) {
+const masks = buildHandMasks(sim.hands);
+sim.handLo = masks.lo; sim.handHi = masks.hi;
+} else { sim.handLo = null; sim.handHi = null; }
 const total = sim.hands[0].length + sim.hands[1].length + sim.hands[2].length + sim.hands[3].length;
 const maxTricks = Math.ceil((total + sim.trick.length) / 4);
 const v = ab(sim, 0, maxTricks, budget, tt);
@@ -3486,7 +3530,7 @@ if (--budget.nodes <= 0) throw { abort: true };
 const seat = sim.turn;
 const maximizing = (seat & 1) === 0;
 const alpha0 = alpha, beta0 = beta;
-const key = solveKey(sim);
+const key = solveKey(sim, budget.maskKey);
 const hit = tt.get(key);
 if (hit !== undefined) {
 const hv = hit >> 2, hf = (hit & 3) - 1;
@@ -3525,6 +3569,10 @@ tt.set(key, (val << 2) | (f + 1));
 return val;
 }
 function solveWorldMisere(sim, budget, tt) {
+if (budget.maskKey) {
+const masks = buildHandMasks(sim.hands);
+sim.handLo = masks.lo; sim.handHi = masks.hi;
+} else { sim.handLo = null; sim.handHi = null; }
 if (sim.tricksSide[sim.contractorSeat & 1] > 0) return 1;
 return abMisere(sim, budget, tt);
 }
@@ -3533,7 +3581,7 @@ if (simDone(sim)) return 0;
 if (--budget.nodes <= 0) throw { abort: true };
 const seat = sim.turn;
 const maximizing = seat !== sim.contractorSeat;
-const key = solveKey(sim);
+const key = solveKey(sim, budget.maskKey);
 const hit = tt.get(key);
 if (hit !== undefined) return hit;
 const moves = worldMoves(sim, seat);
@@ -3723,7 +3771,7 @@ const exactBeliefWorlds = endgame
 ? enumerateWorlds(ctx, opts.maxExactBeliefWorlds || 2200) : null;
 let worldsDone = 0;
 let solvedWorlds = 0, solveAborts = 0;
-const nodeBudget = { nodes: opts.maxNodes || 1200000 };
+const nodeBudget = { nodes: opts.maxNodes || 1200000, maskKey: opts.maskSolveKey !== false };
 while (exactBeliefWorlds
 ? worldsDone < exactBeliefWorlds.length
 : worldsDone < maxWorlds && (worldsDone < minWorlds || now() < deadline)) {
@@ -4075,7 +4123,7 @@ s === declSeat ? keep : s === folded ? [] : (h ? h.slice() : []));
 const sim = makeSim(T, 4, hands, declSeat, declSeat & 1, [0, 0], [],
 { folded, misere: true, contractorSeat: declSeat });
 if (exactPool && exactPool.nodes > 20000) {
-const slice = { nodes: Math.min(exactPool.nodes, 250000) };
+const slice = { nodes: Math.min(exactPool.nodes, 250000), maskKey: true };
 const before = slice.nodes;
 try {
 const v = solveWorldMisere(simClone(sim), slice, new Map());
