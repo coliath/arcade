@@ -4499,9 +4499,9 @@ table: finalTable.slice(0, 8).map(f => ({ discard: f.disc, ev: f.ev, makeRate: f
 }
 const baseline = {
 bid(payload) {
-let highValue = 0;
-for (const a of (payload.auction || [])) if (a.bid) highValue = Core.bidValue(a.bid.level, a.bid.strain);
-const legal = Core.legalBidsAbove(highValue);
+let highRank = 0;
+for (const a of (payload.auction || [])) if (a.bid) highRank = Core.bidRank(a.bid);
+const legal = Core.legalBidsAbove(highRank);
 let best = null;
 for (let s = 0; s <= 4; s++) {
 const est = estimateTricks(payload.hand, s) + KITTY_BOOST + PARTNER_BOOST;
@@ -4669,8 +4669,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -5936,7 +5936,8 @@ maxWorlds: budgets().bidWorlds,
 bidCandidateMode: budgets().bidCandidateMode,
 bidExpandedPenalty: budgets().bidExpandedPenalty,
 continuationMarginModel: budgets().continuationMarginModel,
-profile: bots[seat]
+profile: budgets().bidProfile
+? { ...bots[seat], ...budgets().bidProfile } : bots[seat]
 };
 plateThinking(seat, true);
 const [dec] = await Promise.all([
@@ -5966,7 +5967,8 @@ const dec = await Bot.decide('bid', payload, {
 seed: Engine.decisionSeed(G.match, G.hand), budgetMs: 200, maxWorlds: 30,
 bidCandidateMode: budgets().bidCandidateMode,
 bidExpandedPenalty: budgets().bidExpandedPenalty,
-continuationMarginModel: budgets().continuationMarginModel
+continuationMarginModel: budgets().continuationMarginModel,
+profile: budgets().bidProfile || undefined
 });
 G.humanResolver = null;
 return { bid: dec.action === 'bid' ? dec.bid : null };
@@ -6482,7 +6484,8 @@ discardPosteriorOversample: budgets().discardPosteriorOversample,
 rolloutFollowPolicy: budgets().discardFollowPolicy,
 bidCandidateMode: budgets().bidCandidateMode,
 bidExpandedPenalty: budgets().bidExpandedPenalty,
-continuationMarginModel: budgets().continuationMarginModel });
+continuationMarginModel: budgets().continuationMarginModel,
+profile: budgets().bidProfile || undefined });
 if (r) results.push({ rec, r });
 } catch (e) {   }
 }
