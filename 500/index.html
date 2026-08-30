@@ -3913,8 +3913,11 @@ for (const c of cands) acc.set(c, { u: 0, w: 0, n: 0, trickWins: 0, makes: 0, op
 const minWorlds = opts.minWorlds || 12;
 const maxWorlds = opts.maxWorlds || (endgame ? 90 : 160);
 const rolloutLeadDepth = opts.rolloutLeadDepth == null ? 2 : opts.rolloutLeadDepth;
+const followAtRootCards = payload.seat === ctx.contractorSeat &&
+opts.contractorFollowAtRootCards != null
+? opts.contractorFollowAtRootCards : opts.rolloutFollowAtRootCards;
 const rolloutFollowDepth = (opts.rolloutFollowDepth || 0) ||
-(opts.rolloutFollowAtRootCards === cardsLeftPerPlayer ? 2 : 0);
+(followAtRootCards === cardsLeftPerPlayer ? 2 : 0);
 const rolloutForceScale = opts.rolloutForceScale || 0;
 const redeterminizeRollouts = opts.redeterminizeRollouts || 0;
 const redeterminizeMix = opts.redeterminizeMix == null
@@ -4641,8 +4644,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, followDepth: 0, followAtRootCards: 8, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -6028,6 +6031,7 @@ maxWorlds: budgets().playWorlds,
 endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
+contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
 profile: bots[seat]
@@ -6213,6 +6217,7 @@ const dec = await Bot.decide('play', payload,
 endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
+contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix });
 const samePoint = G.hand && G.hand.phase === 'playing' &&
@@ -6435,6 +6440,7 @@ maxWorlds: budgets().playWorlds,
 endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
+contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
 discardPosteriorOversample: budgets().discardPosteriorOversample });
