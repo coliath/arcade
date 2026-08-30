@@ -4120,6 +4120,15 @@ break;
 const danger = misereDanger(payload.hand);
 if (danger <= 3.0) addCand(0, Core.MISERE);
 if (danger <= 1.8) addCand(0, Core.OPEN_MISERE);
+const compactCandidateKeys = new Set(candSet.keys());
+if (opts.bidCandidateMode === 'all-qualified') {
+for (let s = 0; s <= 4; s++) {
+const potential = est[s] + KITTY_BOOST + PARTNER_BOOST;
+for (const b of legal) {
+if (b.strain === s && potential >= b.level - 0.6) addCand(b.level, s);
+}
+}
+}
 const candidates = [...candSet.values()];
 const ctx = buildBeliefContext(payload);
 const worlds = [];
@@ -4239,7 +4248,8 @@ const results = candidates.map((cand, ci) => ({
 bid: cand,
 ev: accs[ci].w ? accs[ci].u / accs[ci].w : 0,
 makeRate: accs[ci].w ? accs[ci].makes / accs[ci].w : 0,
-n: accs[ci].n
+n: accs[ci].n,
+expandedOnly: !compactCandidateKeys.has(cand.level * 7 + cand.strain)
 }));
 const passEv = passAcc.w ? passAcc.u / passAcc.w
 : matchWinProb(scores[mySide], scores[1 - mySide], target, floor, opts.valueModel);
@@ -4251,6 +4261,7 @@ let best = null;
 const bestStrainEst = Math.max(...est);
 for (const r of results) {
 let ev = r.ev;
+if (r.expandedOnly) ev -= opts.bidExpandedPenalty || 0;
 if (oppHolds && pressure > 0) ev += pressure * 0.006;
 if (r.bid.strain <= Core.NOTRUMP) {
 ev -= 0.004 * (bestStrainEst - est[r.bid.strain]);
@@ -4653,8 +4664,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -5917,6 +5928,8 @@ const opts = {
 seed: Engine.decisionSeed(G.match, G.hand),
 budgetMs: budgets().bid,
 maxWorlds: budgets().bidWorlds,
+bidCandidateMode: budgets().bidCandidateMode,
+bidExpandedPenalty: budgets().bidExpandedPenalty,
 profile: bots[seat]
 };
 plateThinking(seat, true);
