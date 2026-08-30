@@ -5925,6 +5925,30 @@ const base = kind === 'bid' ? 480 : kind === 'discard' ? 700 : 420;
 const t = base * (bots[seat] ? bots[seat].tempo : 1);
 return Math.min(1150, Math.max(320, t));
 }
+function bidDecisionOptions(seat) {
+const b = budgets();
+return {
+seed: Engine.decisionSeed(G.match, G.hand),
+budgetMs: b.bid,
+maxWorlds: b.bidWorlds,
+bidCandidateMode: b.bidCandidateMode,
+bidExpandedPenalty: b.bidExpandedPenalty,
+continuationMarginModel: b.continuationMarginModel,
+profile: b.bidProfile ? { ...(bots[seat] || {}), ...b.bidProfile } : bots[seat]
+};
+}
+function discardDecisionOptions(seat) {
+const b = budgets();
+return {
+seed: Engine.decisionSeed(G.match, G.hand),
+budgetMs: b.discard,
+topK: b.topK,
+maxWorlds: b.discardWorlds,
+discardPosteriorOversample: b.discardPosteriorOversample,
+rolloutFollowPolicy: b.discardFollowPolicy,
+profile: bots[seat]
+};
+}
 async function auctionLoop() {
 composerRefresh();
 let guard = 0;
@@ -5952,16 +5976,7 @@ composerRefresh();
 await AnimQ.sleep(240, true);
 } else {
 const payload = Engine.botPayload(G.match, G.hand, seat);
-const opts = {
-seed: Engine.decisionSeed(G.match, G.hand),
-budgetMs: budgets().bid,
-maxWorlds: budgets().bidWorlds,
-bidCandidateMode: budgets().bidCandidateMode,
-bidExpandedPenalty: budgets().bidExpandedPenalty,
-continuationMarginModel: budgets().continuationMarginModel,
-profile: budgets().bidProfile
-? { ...bots[seat], ...budgets().bidProfile } : bots[seat]
-};
+const opts = bidDecisionOptions(seat);
 plateThinking(seat, true);
 const [dec] = await Promise.all([
 Bot.decide('bid', payload, opts).catch(() => ({ action: 'pass' })),
@@ -5986,13 +6001,7 @@ renderBidValues();
 }
 async function autopilotBid() {
 const payload = Engine.botPayload(G.match, G.hand, 0);
-const dec = await Bot.decide('bid', payload, {
-seed: Engine.decisionSeed(G.match, G.hand), budgetMs: 200, maxWorlds: 30,
-bidCandidateMode: budgets().bidCandidateMode,
-bidExpandedPenalty: budgets().bidExpandedPenalty,
-continuationMarginModel: budgets().continuationMarginModel,
-profile: budgets().bidProfile || undefined
-});
+const dec = await Bot.decide('bid', payload, bidDecisionOptions(0));
 G.humanResolver = null;
 return { bid: dec.action === 'bid' ? dec.bid : null };
 }
@@ -6021,22 +6030,14 @@ if (settings.hints) requestDiscardHint();
 await awaitHuman('discard');
 } else if (seat === 0 && settings.autopilot) {
 const payload = Engine.botPayload(G.match, G.hand, 0);
-const dec = await Bot.decide('discard', payload, { seed: Engine.decisionSeed(G.match, G.hand), budgetMs: 300, topK: 24, maxWorlds: 12 });
+const dec = await Bot.decide('discard', payload, discardDecisionOptions(0));
 G.records.push({ kind: 'discard', payload, chosen: dec.discard });
 Engine.applyDiscard(G.hand, 0, dec.discard);
 } else {
 setPhaseClass('playing');
 status(`${esc(seatFullName(seat))} takes the kitty and buries five…`);
 const payload = Engine.botPayload(G.match, G.hand, seat);
-const opts = {
-seed: Engine.decisionSeed(G.match, G.hand),
-budgetMs: budgets().discard,
-topK: budgets().topK,
-maxWorlds: budgets().discardWorlds,
-discardPosteriorOversample: budgets().discardPosteriorOversample,
-rolloutFollowPolicy: budgets().discardFollowPolicy,
-profile: bots[seat]
-};
+const opts = discardDecisionOptions(seat);
 plateThinking(seat, true);
 const [dec] = await Promise.all([
 Bot.decide('discard', payload, opts).catch(() => ({ discard: AIm.baseline.discard(payload).discard })),
@@ -6081,22 +6082,26 @@ function playBudgetFor(payloadHandLen) {
 const b = budgets();
 return payloadHandLen <= 6 ? b.playLate : b.playEarly;
 }
-function requestBotPlay(seat) {
-const payload = Engine.botPayload(G.match, G.hand, seat);
-const opts = {
+function playDecisionOptions(seat, handLen) {
+const b = budgets();
+return {
 seed: Engine.decisionSeed(G.match, G.hand),
-budgetMs: playBudgetFor(payload.hand.length),
-maxWorlds: budgets().playWorlds,
-endgameThreshold: budgets().endgameThreshold,
-rolloutFollowDepth: budgets().followDepth,
-rolloutFollowAtRootCards: budgets().followAtRootCards,
-contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
-contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
-playInferenceStrength: budgets().playInferenceStrength,
-redeterminizeRollouts: budgets().redeterminize,
-redeterminizeMix: budgets().redeterminizeMix,
+budgetMs: playBudgetFor(handLen),
+maxWorlds: b.playWorlds,
+endgameThreshold: b.endgameThreshold,
+rolloutFollowDepth: b.followDepth,
+rolloutFollowAtRootCards: b.followAtRootCards,
+contractorFollowAtRootCards: b.contractorFollowAtRootCards,
+contractorTrumpLeadPrior: b.contractorTrumpLeadPrior,
+playInferenceStrength: b.playInferenceStrength,
+redeterminizeRollouts: b.redeterminize,
+redeterminizeMix: b.redeterminizeMix,
 profile: bots[seat]
 };
+}
+function requestBotPlay(seat) {
+const payload = Engine.botPayload(G.match, G.hand, seat);
+const opts = playDecisionOptions(seat, payload.hand.length);
 return Bot.decide('play', payload, opts).catch(() => {
 const legal = Engine.legalPlaysFor(G.hand, seat);
 const out = { card: legal[0] };
@@ -6135,8 +6140,7 @@ if (el) el.classList.add('sel');
 say('Forced play: ' + Core.cardLabel(card, G.hand.trump));
 await AnimQ.sleep(520, true);
 } else if (settings.autopilot) {
-const dec = await Bot.decide('play', Engine.botPayload(G.match, G.hand, 0),
-{ seed: Engine.decisionSeed(G.match, G.hand), budgetMs: 160, maxWorlds: 16 });
+const dec = await requestBotPlay(0);
 card = dec.card;
 nom = dec.jokerSuit != null ? dec.jokerSuit : null;
 } else {
