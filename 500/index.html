@@ -4629,7 +4629,7 @@ policyMove, policyFollow, policyFollowTwo, policyLeadTwo, playOut, greedyRespons
 playHistoryLikelihood,
 NOM_BASE, moveCard, moveNom,
 solveWorld, worldMoves,
-matchWinProb, handUtility, buildPlayContext,
+matchWinProb, handUtility, purePlayUtility, buildPlayContext,
 equivClasses,
 decidePlay, decideBid, decideDiscard,
 baseline, evaluateForReview,
@@ -4683,8 +4683,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -6083,6 +6083,7 @@ rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
+playInferenceStrength: budgets().playInferenceStrength,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
 profile: bots[seat]
@@ -6270,6 +6271,7 @@ rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
+playInferenceStrength: budgets().playInferenceStrength,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix });
 const samePoint = G.hand && G.hand.phase === 'playing' &&
@@ -6495,6 +6497,7 @@ rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
+playInferenceStrength: budgets().playInferenceStrength,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
 discardPosteriorOversample: budgets().discardPosteriorOversample,
