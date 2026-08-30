@@ -4006,11 +4006,24 @@ worldsDone++;
 }
 let bestC = cands[0], bestU = -Infinity;
 const table = [];
+let contractorTrumpLead = -1;
+if (opts.contractorTrumpLeadPrior > 0 && ctx.trump < Core.NOTRUMP &&
+payload.seat === ctx.contractorSeat && !(payload.trick || []).length) {
+const trumpCards = payload.hand.filter(c => ctx.T.eff[c] === ctx.trump);
+const hasControl = trumpCards.some(c => ctx.T.pow[c] >= 128);
+if (trumpCards.length >= 5 && hasControl) {
+const trumpCands = cands.filter(c => ctx.T.eff[moveCard(c)] === ctx.trump);
+if (trumpCands.length) contractorTrumpLead = trumpCands.reduce((a, b) =>
+ctx.T.pow[moveCard(a)] < ctx.T.pow[moveCard(b)] ? a : b);
+}
+}
 for (const c of cands) {
 const a = acc.get(c);
 const ev = a.w > 0 ? a.u / a.w : 0;
+const selectionEv = ev + (c === contractorTrumpLead
+? opts.contractorTrumpLeadPrior : 0);
 const row = {
-card: moveCard(c), ev, n: a.n,
+card: moveCard(c), ev, decisionEv: selectionEv, n: a.n,
 makeRate: a.w > 0 ? a.makes / a.w : 0,
 oppRuffRate: a.w > 0 ? a.oppRuffs / a.w : 0,
 avgTricks: a.w > 0 ? a.tricksSum / a.w : 0
@@ -4020,11 +4033,12 @@ table.push(row);
 const p = Core.suitPower(moveCard(c), ctx.trump);
 const bp = Core.suitPower(moveCard(bestC), ctx.trump);
 const tieBetter = ctx.misereContract ? p > bp : p < bp;
-if (ev > bestU + 1e-12 || (Math.abs(ev - bestU) <= 1e-12 && tieBetter)) {
-bestU = ev; bestC = c;
+if (selectionEv > bestU + 1e-12 ||
+(Math.abs(selectionEv - bestU) <= 1e-12 && tieBetter)) {
+bestU = selectionEv; bestC = c;
 }
 }
-table.sort((a, b) => b.ev - a.ev);
+table.sort((a, b) => b.decisionEv - a.decisionEv);
 const out = {
 card: moveCard(bestC), worlds: worldsDone, endgame,
 exactBelief: !!exactBeliefWorlds, solvedWorlds, solveAborts,
@@ -4551,12 +4565,12 @@ const chosen = table.find(t => (t.nom != null || record.chosenNom != null)
 : sameClass(res.classes, t.card, record.chosen));
 const best = table[0];
 if (!best) return null;
-const chosenEv = chosen ? chosen.ev : worstEv(table);
+const chosenEv = chosen ? chosen.decisionEv : worstEv(table, 'decisionEv');
 return {
 kind: 'play', best: best.card, bestNom: best.nom != null ? best.nom : null,
-bestEv: best.ev, chosen: record.chosen,
+bestEv: best.decisionEv, chosen: record.chosen,
 chosenNom: record.chosenNom != null ? record.chosenNom : null,
-chosenEv, loss: Math.max(0, best.ev - chosenEv), table,
+chosenEv, loss: Math.max(0, best.decisionEv - chosenEv), table,
 stats: { best, chosen }
 };
 }
@@ -4595,9 +4609,9 @@ if (!classes) return false;
 for (const cl of classes) if (cl.includes(a) && cl.includes(b)) return true;
 return false;
 }
-function worstEv(table) {
+function worstEv(table, field = 'ev') {
 let w = Infinity;
-for (const t of table) w = Math.min(w, t.ev);
+for (const t of table) w = Math.min(w, t[field]);
 return w === Infinity ? 0 : w;
 }
 return {
@@ -4669,8 +4683,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -6068,6 +6082,7 @@ endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
+contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
 profile: bots[seat]
@@ -6254,6 +6269,7 @@ endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
+contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix });
 const samePoint = G.hand && G.hand.phase === 'playing' &&
@@ -6478,6 +6494,7 @@ endgameThreshold: budgets().endgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
+contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
 discardPosteriorOversample: budgets().discardPosteriorOversample,
