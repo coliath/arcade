@@ -4139,7 +4139,14 @@ const danger = misereDanger(payload.hand);
 if (danger <= 3.0) addCand(0, Core.MISERE);
 if (danger <= 1.8) addCand(0, Core.OPEN_MISERE);
 const compactCandidateKeys = new Set(candSet.keys());
-if (opts.bidCandidateMode === 'all-qualified') {
+if (opts.bidCandidateMode === 'all-qualified-minimum') {
+for (let s = 0; s <= 4; s++) {
+const minB = legal.find(b => b.strain === s);
+if (minB) addCand(minB.level, s);
+}
+}
+if (opts.bidCandidateMode === 'all-qualified' ||
+opts.bidCandidateMode === 'all-qualified-minimum') {
 for (let s = 0; s <= 4; s++) {
 const potential = est[s] + KITTY_BOOST + PARTNER_BOOST;
 for (const b of legal) {
@@ -4204,7 +4211,8 @@ return highB;
 }
 function outcomeUtility(w, finalB, rollRng) {
 if (!finalB) {
-return { u: matchWinProb(scores[mySide], scores[1 - mySide], target, floor, opts.valueModel), made: false, exact: true };
+return { u: matchWinProb(scores[mySide], scores[1 - mySide], target, floor,
+opts.valueModel), made: false, exact: true };
 }
 const declSeat = finalB.seat;
 const declHand = declSeat === payload.seat ? payload.hand : w.hands[declSeat];
@@ -4227,7 +4235,8 @@ u = declSide === mySide ? 1 : 0;
 }
 if (u === null) u = matchWinProb(us, them, target, floor, opts.valueModel);
 const misMine = declSeat === payload.seat && bid.strain >= Core.MISERE;
-return { u, made: sc.made && declSeat === payload.seat, exact: !misMine || outcome.exact !== false };
+return { u, made: sc.made && declSeat === payload.seat,
+exact: !misMine || outcome.exact !== false };
 }
 const stdDeadline = misIdx.length ? now() + Math.max(60, (deadline - now()) * 0.5) : deadline;
 let worldsUsed = 0;
@@ -4684,7 +4693,7 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 applyMotionSettings();
 const BUDGETS = {
 standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
+elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
