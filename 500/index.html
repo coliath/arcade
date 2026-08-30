@@ -2774,7 +2774,8 @@ weight *= discardFit;
 for (let s = 0; s < 4; s++) if (!hands[s]) hands[s] = [];
 if (ctx.playInferenceStrength > 0) {
 weight *= playHistoryLikelihood(ctx, hands, kitty,
-ctx.playInferenceStrength, ctx.playInferenceActions);
+ctx.playInferenceStrength, ctx.playInferenceActions,
+ctx.playInferenceModel);
 }
 return { hands, kitty, deadFolded, weight, discardFit };
 }
@@ -3157,7 +3158,7 @@ return sim.trick.length === 0
 if (sim.trick.length === 0) return policyLead(sim, seat, legal, rng, temp);
 return policyFollow(sim, seat, legal, rng, temp, forceScale);
 }
-function playHistoryLikelihood(ctx, currentHands, kitty, strength, maxActions) {
+function playHistoryLikelihood(ctx, currentHands, kitty, strength, maxActions, model) {
 const p = ctx.payload;
 if (!p || p.phase !== 'play' || ctx.misereContract || !p.contract ||
 !(strength > 0)) return 1;
@@ -3194,7 +3195,10 @@ else if (legal.length > 1 || (x.card === JOKER && sim.trump === 4 && !sim.trick.
 const predicted = policyMove(sim, x.seat,
 Core.rngFromSeed((0x50b1c7 + i * 7919 + x.seat * 101) >>> 0), 0);
 if (predicted !== observed) {
-surprise += policyEquivalentMove(sim, predicted, observed) ? 0.35 : 1;
+const equivalent = policyEquivalentMove(sim, predicted, observed);
+let penalty = equivalent && model && model.equivalent != null
+? model.equivalent : equivalent ? 0.70 : 1;
+surprise += penalty;
 }
 }
 }
@@ -3859,6 +3863,7 @@ ctx.playInferenceStrength = opts.playInferenceStrength == null
 ? 0.55 : Math.max(0, opts.playInferenceStrength);
 ctx.playInferenceActions = opts.playInferenceActions == null
 ? 8 : opts.playInferenceActions;
+ctx.playInferenceModel = opts.playInferenceModel;
 ctx.playUtility = opts.trickTiebreakScale === 0.004
 ? handUtility : purePlayUtility;
 const legal = Core.legalPlays(payload.hand, payload.trick || [], ctx.trump,
