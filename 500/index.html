@@ -3861,6 +3861,45 @@ ctx.slamRule = payload.slamRule !== false;
 ctx.tricksSide = payload.tricksWon ? payload.tricksWon.slice() : [0, 0];
 return ctx;
 }
+const DEFENDER_LEAD_BETA = [0.0005729, -0.0026175, -0.0002257, -0.0025509,
+0.0012757, -0.0055357, 0.0040337, 0.0013537, -0.0024695, 0.0029788,
+0.0028311, 0.0119766, 0.0093566, -0.0010652];
+const DEFENDER_LEAD_SCALE = [0.2763854, 0.1983585, 0.1150558, 0.1075829,
+0.1136324, 0.2090651, 0.1411847, 0.2805418, 0.4689429, 0.4930066,
+0.1800206, 0.2151657, 0.25, 0.051031];
+function defenderLeadFeatures(move, payload, ctx) {
+const card = moveCard(move), nom = moveNom(move), T = ctx.T;
+const e = card === JOKER && ctx.trump === Core.NOTRUMP && nom != null
+? nom : T.eff[card];
+const group = payload.hand.filter(c => c !== card && T.eff[c] === e);
+const p = T.pow[card], higher = group.filter(c => T.pow[c] > p).length;
+const lower = group.filter(c => T.pow[c] < p).length;
+const unseenSuit = ctx.unseen.filter(c => T.eff[c] === e);
+const unseenHigher = unseenSuit.filter(c => T.pow[c] > p).length;
+const suitLen = group.length + (T.eff[card] === e ? 1 : 0);
+const isTrump = ctx.trump < Core.NOTRUMP && e === ctx.trump ? 1 : 0;
+const trumpLen = payload.hand.filter(c => T.eff[c] === ctx.trump).length;
+return [isTrump, p / 130, suitLen / 8, higher / 8, lower / 8,
+unseenHigher / 12, unseenSuit.length / 12, suitLen === 1 ? 1 : 0,
+higher === 0 ? 1 : 0, lower === 0 ? 1 : 0, card === JOKER ? 1 : 0,
+!isTrump && Core.rankOf(card) === 14 ? 1 : 0,
+!isTrump && Core.rankOf(card) === 13 ? 1 : 0,
+isTrump * trumpLen / 8];
+}
+function defenderLeadResiduals(payload, ctx, cands) {
+const features = cands.map(c => defenderLeadFeatures(c, payload, ctx));
+const mean = new Array(DEFENDER_LEAD_BETA.length).fill(0);
+for (const x of features) for (let j = 0; j < mean.length; j++) mean[j] += x[j] / features.length;
+const out = new Map();
+for (let i = 0; i < cands.length; i++) {
+let v = 0;
+for (let j = 0; j < mean.length; j++) {
+v += DEFENDER_LEAD_BETA[j] * (features[i][j] - mean[j]) / DEFENDER_LEAD_SCALE[j];
+}
+out.set(cands[i], 1.25 * v);
+}
+return out;
+}
 function decidePlay(payload, opts) {
 assertFairPayload(payload);
 payload = canon(payload);
@@ -4006,6 +4045,10 @@ worldsDone++;
 }
 let bestC = cands[0], bestU = -Infinity;
 const table = [];
+const defenderLeadResidual = opts.defenderLeadModel === 'residual-v1' &&
+cardsLeftPerPlayer === 8 && !(payload.trick || []).length &&
+(payload.seat & 1) !== ctx.contractorSide
+? defenderLeadResiduals(payload, ctx, cands) : null;
 let contractorTrumpLead = -1;
 if (opts.contractorTrumpLeadPrior > 0 && ctx.trump < Core.NOTRUMP &&
 payload.seat === ctx.contractorSeat && !(payload.trick || []).length) {
@@ -4020,14 +4063,16 @@ ctx.T.pow[moveCard(a)] < ctx.T.pow[moveCard(b)] ? a : b);
 for (const c of cands) {
 const a = acc.get(c);
 const ev = a.w > 0 ? a.u / a.w : 0;
+const modelAdjustment = defenderLeadResidual ? defenderLeadResidual.get(c) || 0 : 0;
 const selectionEv = ev + (c === contractorTrumpLead
-? opts.contractorTrumpLeadPrior : 0);
+? opts.contractorTrumpLeadPrior : 0) + modelAdjustment;
 const row = {
 card: moveCard(c), ev, decisionEv: selectionEv, n: a.n,
 makeRate: a.w > 0 ? a.makes / a.w : 0,
 oppRuffRate: a.w > 0 ? a.oppRuffs / a.w : 0,
 avgTricks: a.w > 0 ? a.tricksSum / a.w : 0
 };
+if (defenderLeadResidual) row.modelAdjustment = modelAdjustment;
 if (moveNom(c) != null) row.nom = moveNom(c);
 table.push(row);
 const p = Core.suitPower(moveCard(c), ctx.trump);
@@ -4692,8 +4737,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, defenderLeadModel: null, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, defenderLeadModel: 'residual-v1', playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -6093,6 +6138,7 @@ rolloutFollowDepth: b.followDepth,
 rolloutFollowAtRootCards: b.followAtRootCards,
 contractorFollowAtRootCards: b.contractorFollowAtRootCards,
 contractorTrumpLeadPrior: b.contractorTrumpLeadPrior,
+defenderLeadModel: b.defenderLeadModel,
 playInferenceStrength: b.playInferenceStrength,
 redeterminizeRollouts: b.redeterminize,
 redeterminizeMix: b.redeterminizeMix,
@@ -6284,6 +6330,7 @@ rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
+defenderLeadModel: budgets().defenderLeadModel,
 playInferenceStrength: budgets().playInferenceStrength,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix });
@@ -6510,6 +6557,7 @@ rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 contractorTrumpLeadPrior: budgets().contractorTrumpLeadPrior,
+defenderLeadModel: budgets().defenderLeadModel,
 playInferenceStrength: budgets().playInferenceStrength,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
