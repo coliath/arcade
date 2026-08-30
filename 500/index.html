@@ -3510,8 +3510,17 @@ return bestM;
 function rolloutPolicyMove(sim, seat, rng, temp, leadDepth, redeterminize, followDepth, forceScale) {
 const choose = view => {
 if (!view.misere) {
+let actorFollowDepth = followDepth;
+if (followDepth && typeof followDepth === 'object') {
+const cards = followDepth.cards;
+const atDepth = !cards || cards.includes(view.hands[seat].length);
+actorFollowDepth = atDepth
+? (seat === view.contractorSeat
+? (followDepth.contractor || 0) : (followDepth.other || 0))
+: 0;
+}
 const legal = (leadDepth >= 2 && view.trick.length === 0) ||
-(followDepth >= 2 && view.trick.length > 0) ? simLegal(view, seat) : null;
+(actorFollowDepth >= 2 && view.trick.length > 0) ? simLegal(view, seat) : null;
 if (legal && legal.length > 1) {
 return view.trick.length === 0
 ? policyLeadTwo(view, seat, legal, rng, temp)
@@ -4389,7 +4398,7 @@ isMis
 buried: finalist.disc }
 : { contractorSeat: payload.seat, buried: finalist.disc });
 playOut(sim, Core.rngFromSeed(rollBase + wi * 7919), isMis ? 0.15 : 0.4,
-rolloutLeadDepth, redeterminizeRollouts);
+rolloutLeadDepth, redeterminizeRollouts, opts.rolloutFollowPolicy);
 return sim.tricksSide;
 }
 function runStage(pool, worlds) {
@@ -4644,8 +4653,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -5976,6 +5985,7 @@ budgetMs: budgets().discard,
 topK: budgets().topK,
 maxWorlds: budgets().discardWorlds,
 discardPosteriorOversample: budgets().discardPosteriorOversample,
+rolloutFollowPolicy: budgets().discardFollowPolicy,
 profile: bots[seat]
 };
 plateThinking(seat, true);
@@ -6240,7 +6250,8 @@ try {
 const dec = await Bot.decide('discard', Engine.botPayload(G.match, G.hand, 0),
 { seed: 424243, budgetMs: budgets().discard, topK: budgets().topK,
 maxWorlds: budgets().discardWorlds,
-discardPosteriorOversample: budgets().discardPosteriorOversample });
+discardPosteriorOversample: budgets().discardPosteriorOversample,
+rolloutFollowPolicy: budgets().discardFollowPolicy });
 if (G.hand.phase === 'discarding') {
 handHint.textContent = 'Coach would bury: ' + dec.discard.map(c => Core.cardShort(c)).join(' ');
 }
@@ -6443,7 +6454,8 @@ rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
 redeterminizeRollouts: budgets().redeterminize,
 redeterminizeMix: budgets().redeterminizeMix,
-discardPosteriorOversample: budgets().discardPosteriorOversample });
+discardPosteriorOversample: budgets().discardPosteriorOversample,
+rolloutFollowPolicy: budgets().discardFollowPolicy });
 if (r) results.push({ rec, r });
 } catch (e) {   }
 }
