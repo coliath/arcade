@@ -3955,9 +3955,11 @@ cands = cands.filter(c => c !== JOKER);
 for (let s = 0; s < 4; s++) cands.push(NOM_BASE + s);
 }
 const cardsLeftPerPlayer = payload.hand.length;
+const misereThreshold = ctx.contract.strain === Core.OPEN_MISERE &&
+opts.openMisereEndgameThreshold != null
+? opts.openMisereEndgameThreshold : (opts.misereEndgameThreshold || 8);
 const endgame = cardsLeftPerPlayer <= (ctx.misereContract
-? (opts.misereEndgameThreshold || 8)
-: (opts.endgameThreshold || 6));
+? misereThreshold : (opts.endgameThreshold || 6));
 const maxCands = opts.maxCandidates || (endgame ? 10 : 6);
 if (cands.length > maxCands) {
 const quick = new Map();
@@ -4779,8 +4781,8 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 }
 applyMotionSettings();
 const BUDGETS = {
-standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, defenderLeadModel: null, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, bidRiskAdjustedSelection: true, closedMisereRescueRate: 0.30, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, defenderLeadModel: 'residual-v1', playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
+standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, openMisereEndgameThreshold: 8, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, defenderLeadModel: null, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
+elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, bidRiskAdjustedSelection: true, closedMisereRescueRate: 0.30, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, openMisereEndgameThreshold: 9, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, defenderLeadModel: 'residual-v1', playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -6178,6 +6180,7 @@ seed: Engine.decisionSeed(G.match, G.hand),
 budgetMs: playBudgetFor(handLen),
 maxWorlds: b.playWorlds,
 endgameThreshold: b.endgameThreshold,
+openMisereEndgameThreshold: b.openMisereEndgameThreshold,
 rolloutFollowDepth: b.followDepth,
 rolloutFollowAtRootCards: b.followAtRootCards,
 contractorFollowAtRootCards: b.contractorFollowAtRootCards,
@@ -6370,6 +6373,7 @@ const payload = Engine.botPayload(G.match, G.hand, 0);
 const dec = await Bot.decide('play', payload,
 { seed: 424242, budgetMs: playBudgetFor(payload.hand.length), maxWorlds: budgets().playWorlds,
 endgameThreshold: budgets().endgameThreshold,
+openMisereEndgameThreshold: budgets().openMisereEndgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
@@ -6597,6 +6601,7 @@ const r = await Bot.decide('review', rec,
 { budgetMs: budgets().review, seed: 71717,
 maxWorlds: budgets().playWorlds,
 endgameThreshold: budgets().endgameThreshold,
+openMisereEndgameThreshold: budgets().openMisereEndgameThreshold,
 rolloutFollowDepth: budgets().followDepth,
 rolloutFollowAtRootCards: budgets().followAtRootCards,
 contractorFollowAtRootCards: budgets().contractorFollowAtRootCards,
