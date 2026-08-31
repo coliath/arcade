@@ -2065,6 +2065,26 @@ const sigmoid = x => 1 / (1 + Math.exp(-x));
 const NOM_BASE = 45;
 function moveCard(m) { return m >= NOM_BASE ? JOKER : m; }
 function moveNom(m) { return m >= NOM_BASE ? m - NOM_BASE : null; }
+function closedMisereCalibratedProbability(makeProbability, rescueRate) {
+const p = clamp(makeProbability, 0, 1);
+const r = clamp(rescueRate || 0, 0, 1);
+return p + (1 - p) * r;
+}
+function bidCandidateRisk(candidate, probabilityScale) {
+return candidate && candidate.bid.strain >= Core.MISERE
+? 0.03 * Math.max(0.2, probabilityScale) : 0;
+}
+function selectBidCandidate(candidates, probabilityScale, riskAdjusted) {
+let best = null;
+for (const candidate of candidates) {
+const selectionEv = candidate.adjEv -
+(riskAdjusted ? bidCandidateRisk(candidate, probabilityScale) : 0);
+if (!best || selectionEv > best.selectionEv) {
+best = { ...candidate, selectionEv };
+}
+}
+return best;
+}
 const ALLOWED_KEYS = new Set([
 'seat', 'hand', 'phase', 'auction', 'contract', 'trump', 'buried',
 'trick', 'tricks', 'tricksWon', 'scores', 'dealer', 'handSizes',
@@ -4268,7 +4288,8 @@ const outcome = simulateDeclare(declSeat, declHand, w, bid, rollRng, exactMis, s
 opts.rolloutLeadDepth || 0,
 declSeat === payload.seat ? rootMisereKeep : null);
 const declSide = declSeat & 1;
-const sc = Core.scoreHand(bid, outcome.ct, { slamRule: payload.slamRule });
+function scoredUtility(ct) {
+const sc = Core.scoreHand(bid, ct, { slamRule: payload.slamRule });
 const deltas = [0, 0];
 deltas[declSide] += sc.contractorDelta;
 deltas[1 - declSide] += sc.defenderDelta;
@@ -4279,8 +4300,20 @@ if (sc.made && scores[declSide] + deltas[declSide] >= target) {
 u = declSide === mySide ? 1 : 0;
 }
 if (u === null) u = matchWinProb(us, them, target, floor, opts.valueModel);
+return { u, made: sc.made };
+}
+const scored = scoredUtility(outcome.ct);
 const misMine = declSeat === payload.seat && bid.strain >= Core.MISERE;
-return { u, made: sc.made && declSeat === payload.seat,
+const rescueRate = declSeat === payload.seat && bid.strain === Core.MISERE &&
+outcome.exact === true
+? Math.max(0, Math.min(1, opts.closedMisereRescueRate || 0)) : 0;
+if (rescueRate && !scored.made) {
+const rescued = scoredUtility(0);
+const makeProbability = closedMisereCalibratedProbability(0, rescueRate);
+return { u: scored.u + makeProbability * (rescued.u - scored.u),
+made: makeProbability, exact: true };
+}
+return { u: scored.u, made: scored.made && declSeat === payload.seat,
 exact: !misMine || outcome.exact !== false };
 }
 const stdDeadline = misIdx.length ? now() + Math.max(60, (deadline - now()) * 0.5) : deadline;
@@ -4292,7 +4325,7 @@ const worldRollSeed = rollBase + wi * 7919;
 for (const ci of stdIdx) {
 const r2 = outcomeUtility(w, auctionOutcome(w, candidates[ci]), Core.rngFromSeed(worldRollSeed));
 accs[ci].u += r2.u * w.weight; accs[ci].w += w.weight; accs[ci].n++;
-if (r2.made) accs[ci].makes += w.weight;
+if (r2.made) accs[ci].makes += r2.made * w.weight;
 }
 const rp = outcomeUtility(w, auctionOutcome(w, null), Core.rngFromSeed(worldRollSeed));
 passAcc.u += rp.u * w.weight;
@@ -4311,7 +4344,7 @@ for (const ci of misIdx) {
 const r2 = outcomeUtility(w, auctionOutcome(w, candidates[ci]), Core.rngFromSeed(worldRollSeed));
 if (!r2.exact) continue;
 accs[ci].u += r2.u * w.weight; accs[ci].w += w.weight; accs[ci].n++;
-if (r2.made) accs[ci].makes += w.weight;
+if (r2.made) accs[ci].makes += r2.made * w.weight;
 counted = true;
 }
 if (counted) misWorlds++;
@@ -4331,6 +4364,7 @@ const pressure = profile.pressure || 0;
 let margin = 0.012 - risk * 0.010;
 if (partnerHolds) margin += 0.035;
 let best = null;
+const adjustedResults = [];
 const bestStrainEst = Math.max(...est);
 for (const r of results) {
 let ev = r.ev;
@@ -4340,13 +4374,17 @@ if (r.bid.strain <= Core.NOTRUMP) {
 ev -= 0.004 * (bestStrainEst - est[r.bid.strain]);
 }
 if (r.bid.strain >= Core.MISERE) ev -= 0.4 / (r.n + 3);
-if (!best || ev > best.adjEv) best = { ...r, adjEv: ev };
+const adjusted = { ...r, adjEv: ev };
+adjustedResults.push(adjusted);
+if (!best || ev > best.adjEv) best = adjusted;
 }
 const table = results.map(r => ({ bid: r.bid, ev: r.ev, makeRate: r.makeRate })).sort((a, b) => b.ev - a.ev);
 const probabilityScale = Math.max(0.04, 4 * passEv * (1 - passEv));
 margin *= probabilityScale;
-const misRisk = best && best.bid.strain >= Core.MISERE
-? 0.03 * Math.max(0.2, probabilityScale) : 0;
+if (opts.bidRiskAdjustedSelection) {
+best = selectBidCandidate(adjustedResults, probabilityScale, true);
+}
+const misRisk = bidCandidateRisk(best, probabilityScale);
 const closeNow = best && scores[mySide] >= target && !partnerHolds &&
 best.makeRate >= 0.80 && best.adjEv >= passEv - 0.01;
 if (!closeNow && (!best || best.adjEv <= passEv + margin + misRisk)) {
@@ -4354,9 +4392,11 @@ return { action: 'pass', passEv, table, worlds: worldsUsed };
 }
 return { action: 'bid', bid: { level: best.bid.level, strain: best.bid.strain }, ev: best.adjEv, passEv, makeRate: best.makeRate, table, worlds: worldsUsed };
 }
-function simulateDeclare(declSeat, declHand, w, bid, rng, misExact, screenR, leadDepth, misKeepModel) {
+function simulateDeclare(declSeat, declHand, w, bid, rng, misExact, screenR, leadDepth,
+misKeepModel) {
 if (bid.strain >= Core.MISERE) {
-return simulateDeclareMisere(declSeat, declHand, w, bid, rng, misExact, misKeepModel);
+return simulateDeclareMisere(declSeat, declHand, w, bid, rng, misExact,
+misKeepModel);
 }
 const T = Core.buildTables(bid.strain);
 const kitty = w.kitty || [];
@@ -4410,7 +4450,8 @@ exactPool.nodes -= before;
 }
 }
 playOut(sim, rng, 0.15);
-return { ct: sim.tricksSide[declSeat & 1], tricksSide: sim.tricksSide, exact: false };
+return { ct: sim.tricksSide[declSeat & 1], tricksSide: sim.tricksSide,
+exact: false };
 }
 function declareUtility(mySide, scores, target, floor, bid, outcome, slamRule, valueModel) {
 const declSide = mySide;
@@ -4682,6 +4723,7 @@ makeSim, simClone, redeterminizeSim, simLegal, simPlay, simDone,
 policyMove, policyFollow, policyFollowTwo, policyLeadTwo, playOut, greedyResponse, policyNomination,
 playHistoryLikelihood,
 NOM_BASE, moveCard, moveNom,
+closedMisereCalibratedProbability, bidCandidateRisk, selectBidCandidate,
 solveWorld, worldMoves,
 matchWinProb, handUtility, purePlayUtility, buildPlayContext,
 equivClasses,
@@ -4738,7 +4780,7 @@ document.documentElement.classList.toggle('reduced-motion', reducedMotion());
 applyMotionSettings();
 const BUDGETS = {
 standard: { bid: 450, bidCandidateMode: null, bidExpandedPenalty: 0, continuationMarginModel: null, bidProfile: null, discard: 750, playEarly: 300, playLate: 520, review: 650, endgameThreshold: 6, playWorlds: 180, bidWorlds: 70, topK: 64, discardWorlds: 32, discardPosteriorOversample: 1, discardFollowPolicy: null, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0, defenderLeadModel: null, playInferenceStrength: 0.55, redeterminize: 0, redeterminizeMix: 0 },
-elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, defenderLeadModel: 'residual-v1', playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
+elite: { bid: 950, bidCandidateMode: 'all-qualified-minimum', bidExpandedPenalty: 0.01, bidRiskAdjustedSelection: true, closedMisereRescueRate: 0.30, continuationMarginModel: { open: 0.25, partner: 1.4 }, bidProfile: { risk: 0, pressure: 0.85 }, discard: 1400, playEarly: 600, playLate: 1000, review: 1200, endgameThreshold: 7, playWorlds: 360, bidWorlds: 120, topK: 128, discardWorlds: 48, discardPosteriorOversample: 2, discardFollowPolicy: { contractor: 0, other: 2 }, followDepth: 0, followAtRootCards: 8, contractorFollowAtRootCards: 0, contractorTrumpLeadPrior: 0.012, defenderLeadModel: 'residual-v1', playInferenceStrength: 0.85, redeterminize: 0, redeterminizeMix: 0 }
 };
 function budgets() { return BUDGETS[settings.difficulty] || BUDGETS.elite; }
 if (!BUDGETS[settings.difficulty]) { settings.difficulty = 'elite'; Persist.set('difficulty', 'elite'); }
@@ -5978,6 +6020,8 @@ budgetMs: b.bid,
 maxWorlds: b.bidWorlds,
 bidCandidateMode: b.bidCandidateMode,
 bidExpandedPenalty: b.bidExpandedPenalty,
+bidRiskAdjustedSelection: b.bidRiskAdjustedSelection,
+closedMisereRescueRate: b.closedMisereRescueRate,
 continuationMarginModel: b.continuationMarginModel,
 profile: b.bidProfile ? { ...(bots[seat] || {}), ...b.bidProfile } : bots[seat]
 };
@@ -6565,6 +6609,8 @@ discardPosteriorOversample: budgets().discardPosteriorOversample,
 rolloutFollowPolicy: budgets().discardFollowPolicy,
 bidCandidateMode: budgets().bidCandidateMode,
 bidExpandedPenalty: budgets().bidExpandedPenalty,
+bidRiskAdjustedSelection: budgets().bidRiskAdjustedSelection,
+closedMisereRescueRate: budgets().closedMisereRescueRate,
 continuationMarginModel: budgets().continuationMarginModel,
 profile: budgets().bidProfile || undefined });
 if (r) results.push({ rec, r });
